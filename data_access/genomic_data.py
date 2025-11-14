@@ -107,7 +107,6 @@ def reindex_to_selected_genes(df, selected_genes, data_type_name):
     original_genes = set(df.columns)
     selected_genes_set = set(selected_genes)
     
-    # Check which genes are missing
     missing_genes = selected_genes_set - original_genes
     extra_genes = original_genes - selected_genes_set
     
@@ -148,7 +147,6 @@ def combine_modalities(df_list, data_type_names):
     # Swap levels to (gene, data_type)
     combined_df = combined_df.swaplevel(i=0, j=1, axis=1)
     
-    # Sort by gene name
     combined_df = combined_df.sort_index(axis=1, level=0)
     
     logging.info(f"Combined dataframe shape: {combined_df.shape}")
@@ -172,17 +170,14 @@ def join_with_labels_and_clean(genomic_df, labels_df):
     """
     logging.info("Joining genomic data with response labels")
     
-    # Get common samples between genomic data and labels (inner join on index)
     common_samples = genomic_df.index.intersection(labels_df.index)
     logging.info(f"Samples in genomic data: {len(genomic_df.index)}")
     logging.info(f"Samples in labels: {len(labels_df.index)}")
     logging.info(f"Common samples (inner join): {len(common_samples)}")
     
-    # Filter both dataframes to common samples
     genomic_filtered = genomic_df.loc[common_samples]
     labels_filtered = labels_df.loc[common_samples]
     
-    # Remove samples with null responses
     non_null_mask = ~labels_filtered['response'].isnull()
     samples_before = len(labels_filtered)
     samples_after = non_null_mask.sum()
@@ -190,7 +185,6 @@ def join_with_labels_and_clean(genomic_df, labels_df):
     if samples_before > samples_after:
         logging.warning(f"Removed {samples_before - samples_after} samples with null responses")
     
-    # Apply the mask to both genomic data and labels
     features = genomic_filtered.loc[non_null_mask]
     response = labels_filtered.loc[non_null_mask, 'response']
     samples = features.index
@@ -201,17 +195,19 @@ def join_with_labels_and_clean(genomic_df, labels_df):
     return features, response, samples
 
 
-def get_union_of_genes(df_list, data_type_names, use_selected_genes_only, use_coding_genes_only):
+def get_genes_list(df_list, data_type_names, use_selected_genes_only, use_coding_genes_only, combine_type):
     """
-    Get the union of all genes across all modalities.
+    Get the union/intersection of all genes across all modalities.
     
     Args:
         df_list: List of dataframes
         data_type_names: Names of data types (for logging)
+        use_selected_genes_only: Boolean value to filter gene list
         use_coding_genes_only: Boolean value to further filter selected genes
+        combine_type: determines union or intersection of genes
     
     Returns:
-        List of all unique genes across all modalities
+        List of all unique genes or intersection of genes across all modalities
     """
     logging.info("Computing union of genes across all modalities")
     
@@ -221,12 +217,15 @@ def get_union_of_genes(df_list, data_type_names, use_selected_genes_only, use_co
         logging.info(f"{name}: {len(genes)} genes")
         gene_sets.append(genes)
     
-    # Get union of all genes
-    all_genes = set.union(*gene_sets)
+    if combine_type == 'union':
+        all_genes = set.union(*gene_sets)
+    elif combine_type == 'intersection':
+        all_genes = set.intersection(*gene_sets)
+    else:
+        raise ValueError("combine_type must be either union or intersection")
     
     logging.info(f"Total unique genes across all modalities: {len(all_genes)}")
     
-    # Log overlap statistics
     for name, gene_set in zip(data_type_names, gene_sets):
         missing = len(all_genes) - len(gene_set)
         logging.info(f"{name}: missing {missing} genes that exist in other modalities (will be filled with 0)")
@@ -259,7 +258,7 @@ def get_union_of_genes(df_list, data_type_names, use_selected_genes_only, use_co
     return all_genes
 
 
-def main():
+def main(use_selected_genes_only, use_coding_genes_only, combine_type):
     """Main data processing pipeline."""
     
     logging.info("="*80)
@@ -284,14 +283,12 @@ def main():
     cnv_amp, cnv_del = process_cnv_data(cnv_df)
     
     # Step 4: Get union of all genes across modalities
-    use_selected_genes_only = True
-    use_coding_genes_only = True
     logging.info("\n" + "="*80)
     logging.info("Finding Union of Genes Across Modalities")
     logging.info("="*80)
     genomic_dfs_raw = [mut_processed, cnv_amp, cnv_del]
     data_type_names = ['mutation', 'cnv_amp', 'cnv_del']
-    all_genes = get_union_of_genes(genomic_dfs_raw, data_type_names, use_selected_genes_only, use_coding_genes_only)
+    all_genes = get_genes_list(genomic_dfs_raw, data_type_names, use_selected_genes_only, use_coding_genes_only, combine_type)
     
     # Step 5: Reindex each modality to have ALL genes (union)
     logging.info("\n" + "="*80)
@@ -335,4 +332,4 @@ def main():
 
 
 if __name__ == "__main__":
-    features, response, sample_ids = main()
+    features, response, sample_ids = main(use_selected_genes_only = True, use_coding_genes_only = True, combine_type = 'intersection')
