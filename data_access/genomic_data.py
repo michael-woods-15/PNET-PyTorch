@@ -4,9 +4,7 @@ import pandas as pd
 import sys
 import os  
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%H:%M')
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '..')))
 
 from config_path import PROSTATE_DATA_PATH, GENE_PATH
@@ -332,4 +330,4 @@ def main(use_selected_genes_only, use_coding_genes_only, combine_type):
 
 
 if __name__ == "__main__":
-    features, response, sample_ids = main(use_selected_genes_only = True, use_coding_genes_only = True, combine_type = 'intersection')
+    features, response, sample_ids = main(use_selected_genes_only = True, use_coding_genes_only = True, combine_type = 'union')
