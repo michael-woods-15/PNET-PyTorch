@@ -3,6 +3,7 @@ import pandas as pd
 import networkx as nx
 import logging
 import sys
+import re
 
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '..')))
 from config_path import REACTOME_PATHWAY_PATH
@@ -28,6 +29,7 @@ def create_reactome_digraph(hierarchy):
 
     return net
 
+
 def add_edges(G, node, n_levels):
     if n_levels <= 0:
         return G
@@ -39,6 +41,7 @@ def add_edges(G, node, n_levels):
 
     G.add_edges_from(edges)
     return G
+
 
 def complete_network_digraph(G, n_levels=5):
     sub_graph = nx.ego_graph(G, 'root', radius=n_levels)
@@ -54,6 +57,41 @@ def complete_network_digraph(G, n_levels=5):
     return sub_graph
 
 
+def get_nodes_at_level(net, distance):
+    nodes_at_distance = set(nx.ego_graph(net, 'root', radius=distance))
+
+    if distance > 0:
+        nodes_closer = set(nx.ego_graph(net, 'root', radius=distance - 1))
+        nodes_at_distance -= nodes_closer
+    
+    return list(nodes_at_distance)
+
+
+def _strip_copy_suffix(node_name):
+    if isinstance(node_name, str) and '_copy' in node_name:
+        return node_name.split('_copy')[0]
+    else:
+        return node_name
+
+
+def get_network_layers(G, n_levels=5):
+    layers = []
+
+    for level in range(n_levels):
+        nodes = get_nodes_at_level(G, level)
+
+        level_dict = {
+            _strip_copy_suffix(node) : [
+                _strip_copy_suffix(child) for child in G.successors(node)
+            ]
+            for node in nodes
+        }
+
+        layers.append(level_dict)
+        logging.info(f"Layer {level} size: {len(level_dict)}")
+    
+    return layers
+
 
 if __name__ == "__main__":
     reactome_hierarchy = load_reactome_hierarchies(HIERARCHIES_FILE)
@@ -61,3 +99,4 @@ if __name__ == "__main__":
     summary = sanity_check_reactome_graph(network)
     completed_digraph = complete_network_digraph(network)
     completed_summary = sanity_check_reactome_graph(completed_digraph)
+    layers = get_network_layers(completed_digraph)
