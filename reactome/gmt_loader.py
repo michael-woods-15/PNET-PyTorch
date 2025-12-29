@@ -11,7 +11,7 @@ PATHWAYS_NAMES_FILE = os.path.join(REACTOME_PATHWAY_PATH, 'ReactomePathways.txt'
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%H:%M')
 
 
-def load_reactome_pathways_file(filename, genes_col, pathway_col):
+def load_reactome_pathways_file(filename,  genes_col=3, pathway_col=1):
     logging.info("Loading reactome pathways from .gmt file")
     pathway_dict_list = []
 
@@ -28,7 +28,7 @@ def load_reactome_pathways_file(filename, genes_col, pathway_col):
                 
     reactome_pathways_df = pd.DataFrame(pathway_dict_list)
 
-    logging.info(f"Size of Reactome Pathways df: {reactome_pathways_df.size}")
+    logging.info(f"Shape of Reactome Pathways df: {reactome_pathways_df.shape}")
 
     return reactome_pathways_df
 
@@ -46,6 +46,6 @@ def load_pathway_names(filename):
 
 
 if __name__ == "__main__":
-    reactome_pathways = load_reactome_pathways_file(filename=REACTOME_PATHWAYS_FILE, genes_col=3, pathway_col=1)
+    reactome_pathways = load_reactome_pathways_file(filename=REACTOME_PATHWAYS_FILE)
     reactome_hierarchies = load_reactome_hierarchies(HIERARCHIES_FILE)
     reactome_pathway_names = load_pathway_names(PATHWAYS_NAMES_FILE)

@@ -7,7 +7,8 @@ import os
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%H:%M')
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '..')))
 
-from config_path import PROSTATE_DATA_PATH, GENE_PATH
+from config_path import PROSTATE_DATA_PATH, GENE_PATH, SELECTED_GENES_FILE_PATH
+from data_utils import save_genes_list
 
 # Paths
 PROCESSED_PATH = os.path.join(PROSTATE_DATA_PATH, 'processed')
@@ -287,6 +288,7 @@ def main(use_selected_genes_only, use_coding_genes_only, combine_type):
     genomic_dfs_raw = [mut_processed, cnv_amp, cnv_del]
     data_type_names = ['mutation', 'cnv_amp', 'cnv_del']
     all_genes = get_genes_list(genomic_dfs_raw, data_type_names, use_selected_genes_only, use_coding_genes_only, combine_type)
+    save_genes_list(all_genes, SELECTED_GENES_FILE_PATH)
     
     # Step 5: Reindex each modality to have ALL genes (union)
     logging.info("\n" + "="*80)
