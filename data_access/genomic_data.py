@@ -257,7 +257,7 @@ def get_genes_list(df_list, data_type_names, use_selected_genes_only, use_coding
     return all_genes
 
 
-def main(use_selected_genes_only, use_coding_genes_only, combine_type):
+def run_genomic_data_pipeline(use_selected_genes_only, use_coding_genes_only, combine_type):
     """Main data processing pipeline."""
     
     logging.info("="*80)
@@ -332,4 +332,6 @@ def main(use_selected_genes_only, use_coding_genes_only, combine_type):
 
 
 if __name__ == "__main__":
-    features, response, sample_ids = main(use_selected_genes_only = True, use_coding_genes_only = True, combine_type = 'union')
+    features, responses, sample_ids = run_genomic_data_pipeline(use_selected_genes_only = True, use_coding_genes_only = True, combine_type = 'union')
+
+    print(type(sample_ids))
