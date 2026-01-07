@@ -8,7 +8,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '..')))
 
 from config_path import PROSTATE_DATA_PATH, GENE_PATH, SELECTED_GENES_FILE_PATH
-from data_utils import save_genes_list
+from data_access.data_utils import save_genes_list
 
 # Paths
 PROCESSED_PATH = os.path.join(PROSTATE_DATA_PATH, 'processed')
