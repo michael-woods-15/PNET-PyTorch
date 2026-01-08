@@ -4,12 +4,13 @@ import networkx as nx
 import logging
 import sys
 import numpy as np
+import torch
 
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '..')))
 from config_path import REACTOME_PATHWAY_PATH, SELECTED_GENES_FILE_PATH
 
-from gmt_loader import load_reactome_pathways_file, load_reactome_hierarchies
-from reactome_utils import sanity_check_reactome_graph
+from reactome.gmt_loader import load_reactome_pathways_file, load_reactome_hierarchies
+from reactome.reactome_utils import sanity_check_reactome_graph
 from data_access.data_utils import load_genes_list
 
 REACTOME_PATHWAYS_FILE = os.path.join(REACTOME_PATHWAY_PATH, 'ReactomePathways.gmt')
@@ -115,7 +116,7 @@ def get_map_from_layer_dict(layer_dict):
     print(len(pathways))
     child_nodes = list(set(child for children in layer_dict.values() for child in children))
     
-    logging.info(f"Pathways: {len(pathways)}, Genes: {len(genes)}")
+    logging.info(f"Pathways: {len(pathways)}, Genes: {len(child_nodes)}")
     
     n_pathways = len(pathways)
     n_children = len(child_nodes)
@@ -155,12 +156,13 @@ def get_layer_maps(layers, genes):
         n_edges = int(filtered_map.sum().sum())
         logging.info(f"Layer {i}: shape={filtered_map.shape}, edges={n_edges}")
         
+        filtered_map = torch.FloatTensor(filtered_map.values)
         maps.append(filtered_map)
     
     return maps
 
 
-if __name__ == "__main__":
+def get_connectivity_maps():
     reactome_hierarchy = load_reactome_hierarchies(HIERARCHIES_FILE)
 
     network = create_reactome_digraph(reactome_hierarchy)
@@ -175,3 +177,8 @@ if __name__ == "__main__":
 
     genes = load_genes_list(SELECTED_GENES_FILE_PATH)
     layer_maps = get_layer_maps(layers, genes)
+
+    return layer_maps
+
+if __name__ == "__main__":
+   get_connectivity_maps()
