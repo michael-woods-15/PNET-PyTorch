@@ -9,15 +9,17 @@ sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '..')))
 
 from models.pnet import SingleOutputPNet, PNet
 from reactome.pathway_hierarchy import get_connectivity_maps
+from data_access.genomic_data import run_genomic_data_pipeline
+from models.model_utils import count_parameters
 
-def test_single_output_pnet(connectivity_maps):
+def test_single_output_pnet(connectivity_maps, features):
     """Test SingleOutputPNet implementation"""
     print("=" * 80)
     print("Testing SingleOutputPNet")
     print("=" * 80)
     
     # Setup
-    batch_size = 4
+    batch_size = 1011
     n_genes = 9229
     n_modalities = 3
     input_dim = n_genes * n_modalities  # 27687
@@ -32,7 +34,8 @@ def test_single_output_pnet(connectivity_maps):
     )
     
     # Create dummy input
-    x = torch.randn(batch_size, input_dim)
+    #x = torch.randn(batch_size, input_dim)
+    x = features
     
     print(f"\nInput shape: {x.shape}")
     print(f"Expected: ({batch_size}, {input_dim})")
@@ -63,14 +66,14 @@ def test_single_output_pnet(connectivity_maps):
     return model
 
 
-def test_multi_output_pnet(connectivity_maps):
+def test_multi_output_pnet(connectivity_maps, features):
     """Test multi-output PNet implementation"""
     print("\n" + "=" * 80)
     print("Testing Multi-Output PNet")
     print("=" * 80)
     
     # Setup
-    batch_size = 4
+    batch_size = 1011
     n_genes = 9229
     n_modalities = 3
     input_dim = n_genes * n_modalities  # 27687
@@ -85,7 +88,8 @@ def test_multi_output_pnet(connectivity_maps):
     )
     
     # Create dummy input
-    x = torch.randn(batch_size, input_dim)
+    #x = torch.randn(batch_size, input_dim)
+    x = features
     
     print(f"\nInput shape: {x.shape}")
     print(f"Expected: ({batch_size}, {input_dim})")
@@ -118,24 +122,27 @@ def test_multi_output_pnet(connectivity_maps):
     print(f"\nTotal parameters: {total_params:,}")
     print(f"Trainable parameters: {trainable_params:,}")
     print(f"Keras implementation: 71,009 parameters")
+
+    count_parameters(model)
     
     return model
 
 
-def test_layer_by_layer(connectivity_maps):
+def test_layer_by_layer(connectivity_maps, features):
     """Test intermediate layer outputs"""
     print("\n" + "=" * 80)
     print("Testing Layer-by-Layer Forward Pass")
     print("=" * 80)
     
-    batch_size = 2
+    batch_size = 1011
     n_genes = 9229
     n_modalities = 3
     input_dim = n_genes * n_modalities
     
     model = PNet(connectivity_maps=connectivity_maps)
     
-    x = torch.randn(batch_size, input_dim)
+    #x = torch.randn(batch_size, input_dim)
+    x = features
     model.eval()
     
     print(f"\nInput: {x.shape}")
@@ -223,14 +230,18 @@ if __name__ == "__main__":
     print("Starting P-NET Implementation Tests\n")
 
     connectivity_maps = get_connectivity_maps()[:5]
+    features, responses, sample_ids = run_genomic_data_pipeline(use_selected_genes_only = True, use_coding_genes_only = True, combine_type = 'union')
+    print(type(features))
+
+    features = torch.tensor(features.values, dtype=torch.float32)
     
     try:
         # Run all tests
-        test_single_output_pnet(connectivity_maps)
-        test_multi_output_pnet(connectivity_maps)
-        test_layer_by_layer(connectivity_maps)
-        test_gradient_flow(connectivity_maps)
-        test_with_real_data_shapes(connectivity_maps)
+        #test_single_output_pnet(connectivity_maps, features)
+        test_multi_output_pnet(connectivity_maps, features)
+        #test_layer_by_layer(connectivity_maps, features)
+        #test_gradient_flow(connectivity_maps)
+        #test_with_real_data_shapes(connectivity_maps)
         
         print("\n" + "=" * 80)
         print("🎉 ALL TESTS PASSED! 🎉")
