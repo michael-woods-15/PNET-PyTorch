@@ -119,6 +119,7 @@ class SparseBiologicalLayer(nn.Module):
 
         return output
 
+
 class OutputHead(nn.Module):
     """
     Dense layer for predictions from any hidden layer

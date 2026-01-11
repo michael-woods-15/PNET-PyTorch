@@ -3,15 +3,9 @@ import torch
 import logging
 import sys
 import os  
-import tempfile
-import shutil
-import numpy as np
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%H:%M')
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '..')))
-
-from models.pnet import PNet
-from reactome.pathway_hierarchy import get_connectivity_maps
 
 def count_parameters(model):
     total_params = 0
