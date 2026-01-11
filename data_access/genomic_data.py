@@ -250,7 +250,6 @@ def get_genes_list(df_list, data_type_names, use_selected_genes_only, use_coding
         coding_genes_df.columns = ['chr', 'start', 'end', 'name']
         coding_genes = set(coding_genes_df['name'].unique())
         all_genes = all_genes.intersection(coding_genes)
-
     
     all_genes = sorted(list(all_genes))
     
