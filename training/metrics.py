@@ -36,7 +36,7 @@ class MetricsTracker:
             'accuracy': self.accuracy.compute().item(),
             'precision': self.precision.compute().item(),
             'recall': self.recall.compute().item(),
-            'cohen_kappa': self.cohen_kappa.compute.item()
+            'cohen_kappa': self.cohen_kappa.compute().item()
         }
 
     def reset(self):

@@ -2,13 +2,11 @@ import logging
 import pandas as pd
 import sys
 import os 
-import torch
-from torch.utils.data import TensorDataset, DataLoader 
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%H:%M')
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '..')))
 
-from genomic_data import run_genomic_data_pipeline
+from data_access.genomic_data import run_genomic_data_pipeline
 
 from config_path import DATA_SPLITS_PATH
 TRAIN_SPLIT_FILE = os.path.join(DATA_SPLITS_PATH, 'training_set.csv')

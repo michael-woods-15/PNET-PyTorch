@@ -1,4 +1,3 @@
-import torch.nn as nn
 import torch
 import logging
 import sys
@@ -24,6 +23,8 @@ def count_parameters(model):
     logging.info(f"{'Trainable Parameters':50s} {total_trainable:>10,}")
     logging.info(f"{'Non-trainable Parameters':50s} {total_params - total_trainable:>10,}")
     logging.info("=" * 80)
+
+    return total_params
 
 
 def save_model(model, path, include_optimizer=False, optimizer=None, epoch=None, loss=None):
