@@ -35,13 +35,16 @@ class PNetTrainer:
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model.to(self.device)
 
+        self.patience = 20  
+        self.min_delta = 1e-4
+        self.best_val_loss = float('inf')
+        self.epochs_without_improvement = 0
+
         total_params = count_parameters(self.model)
         logging.info(f"Device: {self.device}")
         logging.info(f"Model parameters: {total_params:,}")
         logging.info(f"Training batches: {len(train_loader)}, Validation batches: {len(val_loader)}")
         #logging.info(f"Primary metric: {self.primary_metric}")
-
-        self.best_val_loss = float('inf')
 
     def train_epoch(self):
         self.model.train()
@@ -105,10 +108,21 @@ class PNetTrainer:
             logging.info(f"  Val   - Loss: {val_loss:.4f} | " + 
                         " | ".join([f"{k}: {v:.4f}" for k, v in val_metrics.items()]))
             
-            if val_loss < self.best_val_loss:
+            if val_loss < self.best_val_loss - self.min_delta:
+                loss_improvement = self.best_val_loss - self.min_delta
                 self.best_val_loss = val_loss
-                config = {'learning_rate':current_lr}
+                self.epochs_without_improvement = 0
+                config = {'learning_rate': current_lr}
                 save_model_checkpoint(self.model, self.optimiser, self.scheduler, epoch, val_loss, val_metrics, config)
+                logging.info(f"    New best model saved (val_loss: {val_loss:.4f} - Improved by {loss_improvement})")
+            else:
+                self.epochs_without_improvement += 1
+                logging.info(f"  No improvement for {self.epochs_without_improvement} epoch(s)")
+            
+            if self.epochs_without_improvement >= self.patience:
+                logging.info(f"\nEarly stopping triggered after {epoch+1} epochs")
+                logging.info(f"Best validation loss: {self.best_val_loss:.4f}")
+                break
 
             
         logging.info("Training Completed")
