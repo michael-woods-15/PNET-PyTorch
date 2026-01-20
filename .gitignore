@@ -211,3 +211,4 @@ __marimo__/
 # Folders
 _database/
 experiments/
+checkpoints/

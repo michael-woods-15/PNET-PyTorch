@@ -71,7 +71,7 @@ class SparseBiologicalLayer(nn.Module):
         self.register_buffer('src_idx', edges[:, 0]) 
         self.register_buffer('dst_idx', edges[:, 1])
 
-        num_edges = edges.shape[0]  # FIX #1
+        num_edges = edges.shape[0] 
         self.weight = nn.Parameter(torch.Tensor(num_edges))
         self.bias = nn.Parameter(torch.Tensor(self.out_features))
         self.activation = nn.Tanh()
@@ -87,15 +87,19 @@ class SparseBiologicalLayer(nn.Module):
         Designed for symmetric activations like tanh and sigmoid.
         Reference: LeCun et al., "Efficient BackProp" (1998)
         """
+
+        """
         num_edges = len(self.src_idx)
         avg_fan_in = num_edges / self.out_features
         
         limit = (3.0 / avg_fan_in) ** 0.5
         nn.init.uniform_(self.weight, -limit, limit)
         nn.init.zeros_(self.bias)
+        """
 
         """
         Non-biologically aware but matches original Keras implementation
+        """
 
         num_edges = len(self.src_idx)
     
@@ -103,7 +107,7 @@ class SparseBiologicalLayer(nn.Module):
         limit = (3.0 / num_edges) ** 0.5
         nn.init.uniform_(self.weight, -limit, limit)
         nn.init.zeros_(self.bias)
-        """
+        
 
     def forward(self, x):
         gathered_inputs = x[:, self.src_idx]

@@ -10,7 +10,7 @@ sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '..')))
 
 from training.losses import MultiOutputLoss
 from training.metrics import MetricsTracker
-from models.model_utils import count_parameters
+from models.model_utils import count_parameters, save_model_checkpoint
 
 class PNetTrainer:
     def __init__(self, model, train_loader, val_loader):
@@ -40,6 +40,8 @@ class PNetTrainer:
         logging.info(f"Model parameters: {total_params:,}")
         logging.info(f"Training batches: {len(train_loader)}, Validation batches: {len(val_loader)}")
         #logging.info(f"Primary metric: {self.primary_metric}")
+
+        self.best_val_loss = float('inf')
 
     def train_epoch(self):
         self.model.train()
@@ -102,5 +104,11 @@ class PNetTrainer:
                         " | ".join([f"{k}: {v:.4f}" for k, v in train_metrics.items()]))
             logging.info(f"  Val   - Loss: {val_loss:.4f} | " + 
                         " | ".join([f"{k}: {v:.4f}" for k, v in val_metrics.items()]))
+            
+            if val_loss < self.best_val_loss:
+                self.best_val_loss = val_loss
+                config = {'learning_rate':current_lr}
+                save_model_checkpoint(self.model, self.optimiser, self.scheduler, epoch, val_loss, val_metrics, config)
+
             
         logging.info("Training Completed")
