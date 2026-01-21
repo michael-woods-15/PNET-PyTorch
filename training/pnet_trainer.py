@@ -13,32 +13,40 @@ from training.metrics import MetricsTracker
 from models.model_utils import count_parameters, save_model_checkpoint
 
 class PNetTrainer:
-    def __init__(self, model, train_loader, val_loader):
+    def __init__(self, model, train_loader, val_loader, lr, weight_decay, step_size, gamma, loss_weights, patience):
         self.model = model
         self.train_loader = train_loader
         self.val_loader = val_loader
+        self.learning_rate = lr
+        self.weight_decay = weight_decay
+        self.step_size = step_size
+        self.gamma = gamma
+        self.loss_weights = loss_weights
+        self.patience = patience
+
         self.optimiser = optim.Adam(
             model.parameters(),
-            lr=0.001,
-            weight_decay=0.001
+            lr = self.learning_rate,
+            weight_decay = self.weight_decay
         )
 
         self.scheduler = optim.lr_scheduler.StepLR(
             self.optimiser,
-            step_size=50,
-            gamma=0.75   # reduce LR by 25%
+            step_size = self.step_size,
+            gamma = self.gamma  
         )
 
-        self.loss_fn = MultiOutputLoss()
+        self.loss_fn = MultiOutputLoss(loss_weights = self.loss_weights)
         self.metrics = MetricsTracker()
 
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
         self.model.to(self.device)
 
-        self.patience = 20  
         self.min_delta = 1e-4
         self.best_val_loss = float('inf')
         self.epochs_without_improvement = 0
+        self.current_epoch = 0
+        self.stopped_early = False
 
         total_params = count_parameters(self.model)
         logging.info(f"Device: {self.device}")
@@ -96,6 +104,8 @@ class PNetTrainer:
         logging.info(f"Starting training for {n_epochs} epochs...")
 
         for epoch in range(n_epochs):
+            self.current_epoch = epoch
+            
             train_loss, train_metrics = self.train_epoch()
             val_loss, val_metrics = self.validate()
 
@@ -109,7 +119,7 @@ class PNetTrainer:
                         " | ".join([f"{k}: {v:.4f}" for k, v in val_metrics.items()]))
             
             if val_loss < self.best_val_loss - self.min_delta:
-                loss_improvement = self.best_val_loss - self.min_delta
+                loss_improvement = self.best_val_loss - val_loss
                 self.best_val_loss = val_loss
                 self.epochs_without_improvement = 0
                 config = {'learning_rate': current_lr}
@@ -120,6 +130,7 @@ class PNetTrainer:
                 logging.info(f"  No improvement for {self.epochs_without_improvement} epoch(s)")
             
             if self.epochs_without_improvement >= self.patience:
+                self.stopped_early = True
                 logging.info(f"\nEarly stopping triggered after {epoch+1} epochs")
                 logging.info(f"Best validation loss: {self.best_val_loss:.4f}")
                 break
