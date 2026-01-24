@@ -26,6 +26,12 @@ def main():
         model,
         train_loader,
         val_loader,
+        lr=0.001,
+        weight_decay=0.001,
+        step_size=50,
+        gamma=0.75,
+        loss_weights=[2, 7, 20, 54, 148, 400],
+        patience=20
     )
 
     trainer.train(n_epochs=300)
