@@ -1,9 +1,9 @@
 import torch
 from torch import optim
-import torch.nn as nn
 import logging
 import sys
-import os  
+import os
+import optuna
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%H:%M')
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '..')))
@@ -100,7 +100,7 @@ class PNetTrainer:
         metrics = self.metrics.compute()
         return avg_loss, metrics
 
-    def train(self, n_epochs=300):
+    def train(self, n_epochs=300, optuna_trial=None):
         logging.info(f"Starting training for {n_epochs} epochs...")
 
         for epoch in range(n_epochs):
@@ -128,6 +128,12 @@ class PNetTrainer:
             else:
                 self.epochs_without_improvement += 1
                 logging.info(f"  No improvement for {self.epochs_without_improvement} epoch(s)")
+
+            if optuna_trial is not None:
+                optuna_trial.report(val_loss, epoch)
+                if optuna_trial.should_prune():
+                    logging.info(f"Trial pruned at epoch {epoch}")
+                    raise optuna.TrialPruned()
             
             if self.epochs_without_improvement >= self.patience:
                 self.stopped_early = True

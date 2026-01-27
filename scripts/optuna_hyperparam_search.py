@@ -8,6 +8,9 @@ import optuna
 from optuna.trial import TrialState
 import csv
 import matplotlib.pyplot as plt
+import random
+import torch
+import numpy as np
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%H:%M')
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '..')))
@@ -17,10 +20,37 @@ from reactome.pathway_hierarchy import get_connectivity_maps
 from models.pnet import PNet
 from training.pnet_trainer import PNetTrainer
 
+def set_random_seed(seed=42):
+    """
+    Set random seed for reproducibility across all libraries.
+    
+    Args:
+        seed (int): Random seed value
+    """
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        # These settings may reduce performance but increase reproducibility
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+    
+    # Set environment variable for Python hash seed
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    
+    logging.info(f"Random seed set to {seed}")
+
+
 class OptunaHyperparameterSearch:
-    def __init__(self, n_trials=50, results_dir='../experiments/hyperparameters'):
+    def __init__(self, n_trials=50, results_dir='../experiments/hyperparameters', random_seed=42):
         self.n_trials = n_trials
         self.results_dir = Path(results_dir)
+        self.random_seed = random_seed
+
+        set_random_seed(self.random_seed)
         
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         self.run_dir = self.results_dir / f'optuna_search_{timestamp}'
@@ -32,16 +62,26 @@ class OptunaHyperparameterSearch:
         
         self.study_name = f'pnet_optimization_{timestamp}'
         storage_name = f"sqlite:///{self.run_dir / 'optuna_study.db'}"
+
+        pruner = optuna.pruners.MedianPruner(
+            n_startup_trials=5,
+            n_warmup_steps=40,  
+            interval_steps=10  
+        )
         
         self.study = optuna.create_study(
             study_name=self.study_name,
             storage=storage_name,
             direction='minimize',
+            pruner=pruner,
             load_if_exists=False
         )
 
 
     def objective(self, trial):
+        trial_seed = self.random_seed + trial.number
+        set_random_seed(trial_seed)
+
         config = {
             'learning_rate': trial.suggest_float('learning_rate', 1e-4, 1e-2, log=True),
             'weight_decay': trial.suggest_float('weight_decay', 1e-4, 1e-2, log=True),
@@ -62,7 +102,7 @@ class OptunaHyperparameterSearch:
             # ])
         }
 
-        logging.info(f"\nTrial {trial.number}: Testing configuration:")
+        logging.info(f"\nTrial {trial.number}: Testing configuration (seed: {trial_seed}):")
         logging.info(f"{json.dumps(config, indent=2)}")
 
         try:
@@ -86,10 +126,11 @@ class OptunaHyperparameterSearch:
                 patience=config['patience']
             )
 
-            trainer.train(n_epochs=config['max_epochs'])
+            trainer.train(n_epochs=config['max_epochs'], optuna_trial=trial)
 
             trial.set_user_attr('final_epoch', trainer.current_epoch)
             trial.set_user_attr('stopped_early', trainer.stopped_early)
+            trial.set_user_attr('trial_seed', trial_seed)
             
             best_val_loss = trainer.best_val_loss
             logging.info(f"Trial {trial.number} completed with val_loss: {best_val_loss:.4f}")
@@ -105,6 +146,7 @@ class OptunaHyperparameterSearch:
         logging.info(f"\n{'='*80}")
         logging.info(f"Starting Optuna Hyperparameter Search")
         logging.info(f"Number of trials: {self.n_trials}")
+        logging.info(f"Random seed: {self.random_seed}")
         logging.info(f"{'='*80}\n")
         
         self.study.optimize(
@@ -125,6 +167,7 @@ class OptunaHyperparameterSearch:
             'best_value': self.study.best_value,
             'best_params': self.study.best_params,
             'best_trial_number': self.study.best_trial.number,
+            'random_seed': self.random_seed,
             'datetime_start': self.study.trials[0].datetime_start.isoformat() if self.study.trials else None,
             'datetime_complete': datetime.now().isoformat()
         }
@@ -221,6 +264,7 @@ class OptunaHyperparameterSearch:
         
         logging.info(f"\nResults saved to: {self.run_dir}")
         logging.info(f"Study database: {self.run_dir / 'optuna_study.db'}")
+        logging.info(f"Random seed: {self.random_seed}")
         logging.info(f"{'='*80}\n")
 
 
