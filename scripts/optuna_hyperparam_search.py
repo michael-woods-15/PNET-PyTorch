@@ -19,29 +19,7 @@ from data_access.data_pipeline import run_data_pipeline
 from reactome.pathway_hierarchy import get_connectivity_maps
 from models.pnet import PNet
 from training.pnet_trainer import PNetTrainer
-
-def set_random_seed(seed=42):
-    """
-    Set random seed for reproducibility across all libraries.
-    
-    Args:
-        seed (int): Random seed value
-    """
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-        # These settings may reduce performance but increase reproducibility
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-    
-    # Set environment variable for Python hash seed
-    os.environ['PYTHONHASHSEED'] = str(seed)
-    
-    logging.info(f"Random seed set to {seed}")
+from scripts.scripts_utlis import set_random_seed
 
 
 class OptunaHyperparameterSearch:
@@ -86,9 +64,9 @@ class OptunaHyperparameterSearch:
             'learning_rate': trial.suggest_float('learning_rate', 1e-4, 1e-2, log=True),
             'weight_decay': trial.suggest_float('weight_decay', 1e-4, 1e-2, log=True),
             'step_size': trial.suggest_int('step_size', 30, 70, step=10),
-            'gamma': trial.suggest_float('gamma', 0.5, 0.95),
+            'gamma': trial.suggest_float('gamma', 0.6, 0.95),
             'dropout_h0': trial.suggest_float('dropout_h0', 0.3, 0.7),
-            'dropout_h': trial.suggest_float('dropout_h', 0.0, 0.2),
+            'dropout_h': trial.suggest_float('dropout_h', 0.05, 0.2),
             
             # Fixed parameters
             'max_epochs': 300,
@@ -269,5 +247,5 @@ class OptunaHyperparameterSearch:
 
 
 if __name__ == '__main__':
-    searcher = OptunaHyperparameterSearch(n_trials=50)
+    searcher = OptunaHyperparameterSearch(n_trials=100)
     searcher.run_search()
