@@ -13,7 +13,7 @@ from data_access.data_pipeline import run_data_pipeline
 from reactome.pathway_hierarchy import get_connectivity_maps
 from models.pnet import PNet
 from training.pnet_trainer import PNetTrainer
-from scripts.scripts_utlis import set_random_seed
+from scripts.scripts_utils import set_random_seed
 
 class HyperparameterEvaluator:
     def __init__(self, trials_per_config, configs_path, output_path, random_seed):
@@ -78,8 +78,6 @@ class HyperparameterEvaluator:
             logging.info(f"Config {config.get('number', config_idx)}: {config['params']}")
             logging.info(f"Validation Losses: {val_losses}")
             logging.info(f"Mean Loss: {mean_val_loss:.4f}, Std Dev: {std_val_loss:.4f}\n")
-
-        
 
 
     def run_individual_trial(self, params, config_idx, trial_idx):

@@ -19,7 +19,7 @@ from data_access.data_pipeline import run_data_pipeline
 from reactome.pathway_hierarchy import get_connectivity_maps
 from models.pnet import PNet
 from training.pnet_trainer import PNetTrainer
-from scripts.scripts_utlis import set_random_seed
+from scripts.scripts_utils import set_random_seed
 
 
 class OptunaHyperparameterSearch:
