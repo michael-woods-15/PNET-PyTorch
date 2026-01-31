@@ -16,7 +16,7 @@ class ModalityFusionLayer(nn.Module):
     Represents Diagonal custom Layer in the original P-NET Keras implementation
     """
 
-    def __init__(self, n_genes=9229, n_modalities=3, dropout=0.5):
+    def __init__(self, n_genes=9229, n_modalities=3, dropout=0.5, gnn=False, projection_dim=32):
         super(ModalityFusionLayer, self).__init__()
 
         self.n_genes = n_genes
@@ -26,6 +26,11 @@ class ModalityFusionLayer(nn.Module):
         self.bias = nn.Parameter(torch.Tensor(n_genes))
         self.activation = nn.Tanh()
         self.dropout = nn.Dropout(dropout) if dropout > 0 else None
+
+        if gnn:
+            self.projection_dim = projection_dim
+            self.projection = nn.Linear(n_modalities, self.projection_dim)
+            self.projection_activation = nn.ReLU()
 
         self._initialise_parameters()
 
@@ -55,6 +60,27 @@ class ModalityFusionLayer(nn.Module):
             output = self.dropout(output)
 
         return output
+    
+    def get_gnn_projected_features(self, x):
+        """
+        Extract projected gene features for GNN.
+        
+        Args:
+            x: Input tensor [batch_size, n_genes * n_modalities]
+        
+        Returns:
+            projected_features: [batch_size, n_genes, projection_dim]
+        """
+        batch_size = x.size(0)
+        weighted_inputs = x * self.weight
+        modality_groups = weighted_inputs.reshape(batch_size * self.n_genes, self.n_modalities)
+
+        projected = self.projection(modality_groups) 
+        projected = self.projection_activation(projected)
+
+        projected_features = projected.reshape(batch_size, self.n_genes, self.projection_dim)
+        
+        return projected_features
 
 
 class SparseBiologicalLayer(nn.Module):
