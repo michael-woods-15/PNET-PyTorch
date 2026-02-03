@@ -10,58 +10,92 @@ import numpy as np
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%H:%M')
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '..')))
 
-from reactome.pathway_hierarchy import get_connectivity_maps
-from data_access.data_pipeline import run_data_pipeline
 from models.layers import ModalityFusionLayer
 
 
 class ReactomeGNN(nn.Module):
-    def __init__(self, connectivity_maps, n_genes=9229, n_modalities=3, projection_dim=32, 
-                 hidden_dim=64, dropout=0.1):
-        super(ReactomeGNN, self).__init__()
-
+    def __init__(self, connectivity_maps, n_genes=9229, n_modalities=3, projection_dim=32,
+                hidden_dim=64, dropout_h0=0.5, dropout=0.3):
+        super().__init__()
+        
+        self.connectivity_maps = connectivity_maps
         self.n_genes = n_genes
+        self.n_modalities = n_modalities
         self.projection_dim = projection_dim
+        self.hidden_dim = hidden_dim
+        self.dropout_h0 = dropout_h0
+        
+        self.node_counts = [n_genes] 
+        for adj in connectivity_maps:
+            self.node_counts.append(adj.shape[1]) 
+
+        self.total_nodes = sum(self.node_counts)
+        self.n_pathway_nodes = self.total_nodes - n_genes
+        logging.info(f"Hierarchy structure: {self.node_counts}")
+        logging.info(f"Total nodes: {self.total_nodes}")
+        logging.info(f"Pathway nodes: {self.n_pathway_nodes}")
         
         self.fusion_layer = ModalityFusionLayer(
-            n_genes=n_genes,
-            n_modalities=n_modalities,
-            dropout=dropout,
-            gnn=True,
-            projection_dim=projection_dim,
+            n_genes=self.n_genes, 
+            n_modalities=self.n_modalities, 
+            dropout=self.dropout_h0,
+            gnn=True, 
+            projection_dim=projection_dim
         )
-
-        self.edge_index = self.build_edge_index(connectivity_maps)
+        
+        self.pathway_embeddings = nn.Parameter(
+            torch.randn(self.n_pathway_nodes, projection_dim) * 0.01
+        )
+        
+        self.edge_index = self.build_full_edge_index(connectivity_maps)
         
         self.conv1 = GCNConv(projection_dim, hidden_dim)
         self.conv2 = GCNConv(hidden_dim, hidden_dim)
-        
         self.dropout = nn.Dropout(dropout)
-        
         self.classifier = nn.Linear(hidden_dim, 1)
         nn.init.xavier_uniform_(self.classifier.weight)
         nn.init.zeros_(self.classifier.bias)
-
+        
         self._batched_edge_cache = {}
 
-        logging.info(f"Number of edges: {self.edge_index.shape[1]}")
-        logging.info(f"Number of genes: {self.n_genes}")
-        logging.info(f"Edge density: {self.edge_index.shape[1] / (self.n_genes ** 2):.4f}")
 
+    def build_full_edge_index(self, connectivity_maps):
+        all_edges = []
+        
+        offsets = [0]
+        for size in self.node_counts[:-1]:
+            offsets.append(offsets[-1] + size)
+        # offsets = [0, 9229, 10616, 11682, 12129, 12276]
+        
+        for level_idx, adj in enumerate(connectivity_maps):
+            edges = adj.nonzero(as_tuple=False).t()
+            
+            source_offset = offsets[level_idx]
+            target_offset = offsets[level_idx + 1]
+            
+            edges[0] += source_offset 
+            edges[1] += target_offset 
+            
+            all_edges.append(edges)
+        
+        edge_index = torch.cat(all_edges, dim=1)
+        edge_index = torch.unique(edge_index, dim=1)
+        return edge_index
+    
 
     def _get_batched_edge_index(self, batch_size, device):
         """Get or create batched edge index for given batch size"""
         if batch_size not in self._batched_edge_cache:
             edge_index_list = []
             for i in range(batch_size):
-                offset = i * self.n_genes
+                offset = i * self.total_nodes   
                 offset_edge_index = self.edge_index + offset
                 edge_index_list.append(offset_edge_index)
             
             self._batched_edge_cache[batch_size] = torch.cat(edge_index_list, dim=1)
         
         return self._batched_edge_cache[batch_size].to(device)
-
+    
 
     def forward(self, x):
         """
@@ -76,10 +110,18 @@ class ReactomeGNN(nn.Module):
         
         # Shape: [batch_size, n_genes, projection_dim]
         gene_features = self.fusion_layer.get_gnn_projected_features(x)
-        
-        # Shape: [batch_size * n_genes, projection_dim]
-        node_features = gene_features.reshape(-1, self.projection_dim)
 
+        # Shape: [batch_size, n_pathway_nodes, projection_dim]
+        pathway_features = self.pathway_embeddings.unsqueeze(0).expand(
+            batch_size, -1, -1
+        )
+
+        # Shape: [batch_size, total_nodes, projection_dim]
+        all_node_features = torch.cat([gene_features, pathway_features], dim=1)
+        
+        # Shape: [batch_size * total_nodes, projection_dim]
+        node_features = all_node_features.reshape(-1, self.projection_dim)
+        
         batched_edge_index = self._get_batched_edge_index(batch_size, x.device)
         
         node_features = self.conv1(node_features, batched_edge_index)
@@ -90,32 +132,11 @@ class ReactomeGNN(nn.Module):
         node_features = F.relu(node_features)
         node_features = self.dropout(node_features)
         
-        # Reshape back to [batch_size, n_genes, hidden_dim]
-        node_features = node_features.reshape(batch_size, self.n_genes, -1)
+        # Reshape back to [batch_size, total_nodes, hidden_dim]
+        node_features = node_features.reshape(batch_size, self.total_nodes, -1)
         
-        # Global mean pooling over all genes
-        graph_features = node_features.mean(dim=1)  # [batch_size, hidden_dim]
+        # Pool entire Reactome graph
+        graph_features = node_features.mean(dim=1)
         
         logits = self.classifier(graph_features)
         return logits
-
-
-    def build_edge_index(self, adjacency_matrices):
-        """
-        Convert list of adjacency matrices from Reactome hierarchy to PyTorch Geometric edge_index.
-        
-        Args:
-            adjacency_matrices: List of adjacency matrices from get_connectivity_maps()
-        
-        Returns:
-            edge_index: [2, num_edges] tensor
-        """
-        all_edges = []
-        
-        for adj_matrix in adjacency_matrices:
-            edge_index = adj_matrix.nonzero(as_tuple=False).t()
-            all_edges.append(edge_index)
-        
-        edge_index = torch.cat(all_edges, dim=1)
-        edge_index = torch.unique(edge_index, dim=1)
-        return edge_index

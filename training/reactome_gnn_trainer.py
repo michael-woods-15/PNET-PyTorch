@@ -10,6 +10,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '..')))
 
 from training.metrics import MetricsTracker
+from training.losses import WeightedBCELoss
 from models.model_utils import count_parameters, save_model_checkpoint
 
 class ReactomeGNNTrainer:
@@ -36,7 +37,7 @@ class ReactomeGNNTrainer:
             gamma = self.gamma  
         )
 
-        self.loss_fn = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([self.pos_weight]))
+        self.loss_fn = WeightedBCELoss()
         self.metrics = MetricsTracker()
 
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
