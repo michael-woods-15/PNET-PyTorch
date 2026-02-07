@@ -8,11 +8,13 @@ sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '..')))
 
 from data_access.data_pipeline import run_data_pipeline
 from reactome.pathway_hierarchy import get_connectivity_maps
-from models.pnet import PNet, SingleOutputPNet
+from models.pnet import PNet
 from models.reactome_gnn import ReactomeGNN
+from models.baseline import DenseNN
 from training.pnet_trainer import PNetTrainer
 from training.reactome_gnn_trainer import ReactomeGNNTrainer
 from training.pnet_single_trainer import SingleOutputPNetTrainer
+from training.baseline_trainer import DenseNNTrainer
 
 def main(selected_model):
     train_loader, val_loader, test_loader = run_data_pipeline()
@@ -80,7 +82,23 @@ def main(selected_model):
             patience=20
         )
     elif selected_model == "dense":
-        pass
+        model = DenseNN(
+            n_genes=9229, 
+            n_modalities=3, 
+            layer_dimensions=[1387,1066,447,147,26], 
+            dropout=0.2
+        )
+
+        trainer = DenseNNTrainer(
+            model=model,
+            train_loader=train_loader,
+            val_loader=val_loader,
+            lr=0.001,
+            weight_decay=0.01,
+            step_size=30,
+            gamma=0.5,         
+            patience=25,
+        )
     else:
         raise ValueError(
             f"Unknown model '{selected_model}'. "

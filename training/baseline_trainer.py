@@ -8,13 +8,12 @@ import optuna
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%H:%M')
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '..')))
 
-from training.losses import MultiOutputLoss
+from training.losses import WeightedBCELoss
 from training.metrics import MetricsTracker
 from models.model_utils import count_parameters, save_model_checkpoint
 
-class SingleOutputPNetTrainer:
-    def __init__(self, model, train_loader, val_loader, lr, weight_decay, step_size, 
-                 gamma, loss_weights, patience, output_layer=-1):
+class DenseNNTrainer:
+    def __init__(self, model, train_loader, val_loader, lr, weight_decay, step_size, gamma, patience):
         self.model = model
         self.train_loader = train_loader
         self.val_loader = val_loader
@@ -22,9 +21,7 @@ class SingleOutputPNetTrainer:
         self.weight_decay = weight_decay
         self.step_size = step_size
         self.gamma = gamma
-        self.loss_weights = loss_weights
         self.patience = patience
-        self.output_layer_index = output_layer
 
         self.optimiser = optim.Adam(
             model.parameters(),
@@ -38,7 +35,7 @@ class SingleOutputPNetTrainer:
             gamma = self.gamma  
         )
 
-        self.loss_fn = MultiOutputLoss(loss_weights = self.loss_weights)
+        self.loss_fn = WeightedBCELoss()
         self.metrics = MetricsTracker()
 
         self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -54,8 +51,6 @@ class SingleOutputPNetTrainer:
         logging.info(f"Device: {self.device}")
         logging.info(f"Model parameters: {total_params:,}")
         logging.info(f"Training batches: {len(train_loader)}, Validation batches: {len(val_loader)}")
-        #logging.info(f"Primary metric: {self.primary_metric}")
-
 
     def train_epoch(self):
         self.model.train()
@@ -67,22 +62,21 @@ class SingleOutputPNetTrainer:
             x, y = x.to(self.device), y.to(self.device)
 
             self.optimiser.zero_grad()
-            outputs = self.model(x)
+            output = self.model(x)
 
-            loss = self.loss_fn(outputs, y)
+            loss = self.loss_fn(output, y)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
             self.optimiser.step()
             total_loss += loss.item()
 
-            prob = torch.sigmoid(outputs[self.output_layer_index])
+            prob = torch.sigmoid(output)
             self.metrics.update(prob, y)
 
         avg_loss = total_loss / len(self.train_loader)
         metrics = self.metrics.compute()
         return avg_loss, metrics
     
-
     def validate(self):
         self.model.eval()
         self.metrics.reset()
@@ -93,18 +87,17 @@ class SingleOutputPNetTrainer:
             for x, y in self.val_loader:
                 x, y = x.to(self.device), y.to(self.device)
 
-                outputs = self.model(x)
-                loss = self.loss_fn(outputs, y)
+                output = self.model(x)
+                loss = self.loss_fn(output, y)
                 total_loss += loss.item()
 
-                prob = torch.sigmoid(outputs[self.output_layer_index])
+                prob = torch.sigmoid(output)
                 self.metrics.update(prob, y)
 
         avg_loss = total_loss / len(self.val_loader)
         metrics = self.metrics.compute()
         return avg_loss, metrics
     
-
     def train(self, n_epochs=300, optuna_trial=None):
         logging.info(f"Starting training for {n_epochs} epochs...")
 
@@ -137,7 +130,7 @@ class SingleOutputPNetTrainer:
                     val_loss=val_loss, 
                     val_metrics=val_metrics, 
                     config=config, 
-                    model_type='pnet_single'
+                    model_type='dense'
                 )
 
                 logging.info(f"    New best model saved (val_loss: {val_loss:.4f} - Improved by {loss_improvement})")
