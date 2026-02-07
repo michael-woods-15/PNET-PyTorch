@@ -8,12 +8,13 @@ import optuna
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%H:%M')
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '..')))
 
-from training.losses import MultiOutputLoss
+from training.losses import MultiOutputLoss, WeightedBCELoss
 from training.metrics import MetricsTracker
 from models.model_utils import count_parameters, save_model_checkpoint
 
-class PNetTrainer:
-    def __init__(self, model, train_loader, val_loader, lr, weight_decay, step_size, gamma, loss_weights, patience):
+class SingleOutputPNetTrainer:
+    def __init__(self, model, train_loader, val_loader, lr, weight_decay, step_size, 
+                 gamma, loss_weights, patience, output_layer=-1):
         self.model = model
         self.train_loader = train_loader
         self.val_loader = val_loader
@@ -23,6 +24,7 @@ class PNetTrainer:
         self.gamma = gamma
         self.loss_weights = loss_weights
         self.patience = patience
+        self.output_layer_index = output_layer
 
         self.optimiser = optim.Adam(
             model.parameters(),
@@ -54,6 +56,7 @@ class PNetTrainer:
         logging.info(f"Training batches: {len(train_loader)}, Validation batches: {len(val_loader)}")
         #logging.info(f"Primary metric: {self.primary_metric}")
 
+
     def train_epoch(self):
         self.model.train()
         self.metrics.reset()
@@ -72,14 +75,14 @@ class PNetTrainer:
             self.optimiser.step()
             total_loss += loss.item()
 
-            probs = [torch.sigmoid(out) for out in outputs]
-            avg_prob = torch.stack(probs).mean(dim=0)
-            self.metrics.update(avg_prob, y)
+            prob = torch.sigmoid(outputs[self.output_layer_index])
+            self.metrics.update(prob, y)
 
         avg_loss = total_loss / len(self.train_loader)
         metrics = self.metrics.compute()
         return avg_loss, metrics
     
+
     def validate(self):
         self.model.eval()
         self.metrics.reset()
@@ -94,13 +97,13 @@ class PNetTrainer:
                 loss = self.loss_fn(outputs, y)
                 total_loss += loss.item()
 
-                probs = [torch.sigmoid(out) for out in outputs]
-                avg_prob = torch.stack(probs).mean(dim=0)
-                self.metrics.update(avg_prob, y)
+                prob = torch.sigmoid(outputs[self.output_layer_index])
+                self.metrics.update(prob, y)
 
         avg_loss = total_loss / len(self.val_loader)
         metrics = self.metrics.compute()
         return avg_loss, metrics
+    
 
     def train(self, n_epochs=300, optuna_trial=None):
         logging.info(f"Starting training for {n_epochs} epochs...")
@@ -125,7 +128,7 @@ class PNetTrainer:
                 self.best_val_loss = val_loss
                 self.epochs_without_improvement = 0
                 config = {'learning_rate': current_lr}
-                
+
                 save_model_checkpoint(
                     model=self.model, 
                     optimiser=self.optimiser, 
@@ -134,9 +137,9 @@ class PNetTrainer:
                     val_loss=val_loss, 
                     val_metrics=val_metrics, 
                     config=config, 
-                    model_type='pnet'
+                    model_type='pnet_single'
                 )
-                
+
                 logging.info(f"    New best model saved (val_loss: {val_loss:.4f} - Improved by {loss_improvement})")
             else:
                 self.epochs_without_improvement += 1

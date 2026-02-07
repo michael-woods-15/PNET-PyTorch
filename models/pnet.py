@@ -54,32 +54,4 @@ class PNet(nn.Module):
             outputs.append(self.output_heads[i](x))
         
         return outputs
-
-
-
-class SingleOutputPNet(nn.Module):
-    """
-    Simpler version of P-NET with only one final output layer
-    Included for simplicity to check layers are working as intended.
-    """
-    def __init__(self, connectivity_maps, n_genes=9229, n_modalities=3, dropout_h0=0.5, dropout_h=0.1):
-        super(SingleOutputPNet, self).__init__()
-
-        self.layers = nn.ModuleList()
-
-        first_layer = ModalityFusionLayer(n_genes, n_modalities, dropout_h0)
-        self.layers.append(first_layer)
-
-        for connectivity_map in connectivity_maps:
-            biological_layer = SparseBiologicalLayer(connectivity_map, dropout_h)
-            self.layers.append(biological_layer)
-
-        final_size = connectivity_maps[-1].shape[1]
-        self.output_head = OutputHead(final_size)
-
-    def forward(self, x):
-        for layer in self.layers:
-            x = layer(x)
-        
-        return self.output_head(x)
         

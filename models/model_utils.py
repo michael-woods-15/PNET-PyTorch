@@ -27,7 +27,7 @@ def count_parameters(model):
     return total_params
 
 
-def save_model_checkpoint(model, optimiser, scheduler, epoch, val_loss, val_metrics, config, gnn=False):
+def save_model_checkpoint(model, optimiser, scheduler, epoch, val_loss, val_metrics, config, model_type):
     """
     Save model checkpoint with optional training state.
     """
@@ -42,10 +42,7 @@ def save_model_checkpoint(model, optimiser, scheduler, epoch, val_loss, val_metr
         'config' : config
     }
 
-    if gnn:
-        checkpoint_path = os.path.join(os.getcwd(), '../checkpoints/gnn_best_model.pt')
-    else:
-        checkpoint_path = os.path.join(os.getcwd(), '../checkpoints/best_model.pt')
+    checkpoint_path = os.path.join(os.getcwd(), f'../checkpoints/{model_type}best_model.pt')
     torch.save(checkpoint, checkpoint_path)
     logging.info(f"Checkpoint saved to {checkpoint_path}")
 

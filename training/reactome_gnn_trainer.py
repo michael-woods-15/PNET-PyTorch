@@ -73,8 +73,8 @@ class ReactomeGNNTrainer:
             self.optimiser.step()
             total_loss += loss.item()
 
-            probs = torch.sigmoid(logits)
-            self.metrics.update(probs, y)
+            prob = torch.sigmoid(logits)
+            self.metrics.update(prob, y)
 
         avg_loss = total_loss / len(self.train_loader)
         metrics = self.metrics.compute()
@@ -90,11 +90,12 @@ class ReactomeGNNTrainer:
             for x, y in self.val_loader:
                 x, y = x.to(self.device), y.to(self.device)
 
-                pred = self.model(x)
-                loss = self.loss_fn(pred, y)
+                logits = self.model(x)
+                loss = self.loss_fn(logits, y)
                 total_loss += loss.item()
 
-                self.metrics.update(pred, y)
+                prob = torch.sigmoid(logits)
+                self.metrics.update(prob, y)
 
         avg_loss = total_loss / len(self.val_loader)
         metrics = self.metrics.compute()
@@ -123,7 +124,18 @@ class ReactomeGNNTrainer:
                 self.best_val_loss = val_loss
                 self.epochs_without_improvement = 0
                 config = {'learning_rate': current_lr}
-                save_model_checkpoint(self.model, self.optimiser, self.scheduler, epoch, val_loss, val_metrics, config, gnn=True)
+
+                save_model_checkpoint(
+                    model=self.model, 
+                    optimiser=self.optimiser, 
+                    scheduler=self.scheduler, 
+                    epoch=epoch, 
+                    val_loss=val_loss, 
+                    val_metrics=val_metrics, 
+                    config=config, 
+                    model_type='reactome_gnn'
+                )
+                
                 logging.info(f"    New best model saved (val_loss: {val_loss:.4f} - Improved by {loss_improvement})")
             else:
                 self.epochs_without_improvement += 1
