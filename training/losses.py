@@ -14,7 +14,8 @@ class WeightedBCELoss(nn.Module):
     """
     def __init__(self, pos_weight=2.0):
         super(WeightedBCELoss, self).__init__()
-        self.criterion = nn.BCEWithLogitsLoss(pos_weight=torch.tensor([pos_weight]))
+        self.register_buffer("pos_weight", torch.tensor([pos_weight]))
+        self.criterion = nn.BCEWithLogitsLoss(pos_weight=self.pos_weight)
     
     def forward(self, pred, target):
         return self.criterion(pred, target)
@@ -27,7 +28,7 @@ class MultiOutputLoss(nn.Module):
     """
     def __init__(self, loss_weights=[2, 7, 20, 54, 148, 400], pos_weight=2.0):
         super(MultiOutputLoss, self).__init__()
-        self.loss_weights = loss_weights
+        self.register_buffer("loss_weights", torch.tensor(loss_weights, dtype=torch.float32))
         self.criterions = nn.ModuleList([
             WeightedBCELoss(pos_weight) for _ in range(len(loss_weights))
         ])

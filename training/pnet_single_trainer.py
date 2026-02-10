@@ -24,7 +24,11 @@ class SingleOutputPNetTrainer:
         self.gamma = gamma
         self.loss_weights = loss_weights
         self.patience = patience
-        self.output_layer_index = output_layer
+        self.output_layer = output_layer
+
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        
+        self.model.to(self.device)
 
         self.optimiser = optim.Adam(
             model.parameters(),
@@ -39,10 +43,9 @@ class SingleOutputPNetTrainer:
         )
 
         self.loss_fn = MultiOutputLoss(loss_weights = self.loss_weights)
-        self.metrics = MetricsTracker()
+        self.loss_fn.to(self.device)
 
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.model.to(self.device)
+        self.metrics = MetricsTracker(device=self.device)
 
         self.min_delta = 1e-4
         self.best_val_loss = float('inf')
@@ -54,7 +57,6 @@ class SingleOutputPNetTrainer:
         logging.info(f"Device: {self.device}")
         logging.info(f"Model parameters: {total_params:,}")
         logging.info(f"Training batches: {len(train_loader)}, Validation batches: {len(val_loader)}")
-        #logging.info(f"Primary metric: {self.primary_metric}")
 
 
     def train_epoch(self):

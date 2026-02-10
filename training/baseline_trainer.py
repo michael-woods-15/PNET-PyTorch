@@ -23,6 +23,10 @@ class DenseNNTrainer:
         self.gamma = gamma
         self.patience = patience
 
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        
+        self.model.to(self.device)
+
         self.optimiser = optim.Adam(
             model.parameters(),
             lr = self.learning_rate,
@@ -36,10 +40,9 @@ class DenseNNTrainer:
         )
 
         self.loss_fn = WeightedBCELoss()
-        self.metrics = MetricsTracker()
+        self.loss_fn.to(self.device)
 
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.model.to(self.device)
+        self.metrics = MetricsTracker(device=self.device)
 
         self.min_delta = 1e-4
         self.best_val_loss = float('inf')

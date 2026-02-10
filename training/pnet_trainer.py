@@ -24,6 +24,10 @@ class PNetTrainer:
         self.loss_weights = loss_weights
         self.patience = patience
 
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        
+        self.model.to(self.device)
+
         self.optimiser = optim.Adam(
             model.parameters(),
             lr = self.learning_rate,
@@ -37,10 +41,9 @@ class PNetTrainer:
         )
 
         self.loss_fn = MultiOutputLoss(loss_weights = self.loss_weights)
-        self.metrics = MetricsTracker()
+        self.loss_fn.to(self.device)
 
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.model.to(self.device)
+        self.metrics = MetricsTracker(device=self.device)
 
         self.min_delta = 1e-4
         self.best_val_loss = float('inf')
@@ -52,7 +55,6 @@ class PNetTrainer:
         logging.info(f"Device: {self.device}")
         logging.info(f"Model parameters: {total_params:,}")
         logging.info(f"Training batches: {len(train_loader)}, Validation batches: {len(val_loader)}")
-        #logging.info(f"Primary metric: {self.primary_metric}")
 
     def train_epoch(self):
         self.model.train()

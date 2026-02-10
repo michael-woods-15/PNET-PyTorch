@@ -1,6 +1,7 @@
 import logging
 import sys
 import os  
+import torch
 from torchmetrics.classification import (
     BinaryF1Score, BinaryAUROC, BinaryAccuracy,
     BinaryPrecision, BinaryRecall, BinaryCohenKappa
@@ -10,17 +11,18 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '..')))
 
 class MetricsTracker:
-    def __init__(self):
-        self.f1 = BinaryF1Score()
-        self.auc = BinaryAUROC()
-        self.accuracy = BinaryAccuracy()
-        self.precision = BinaryPrecision()
-        self.recall = BinaryRecall()
-        self.cohen_kappa = BinaryCohenKappa()
+    def __init__(self, device='cpu'):
+        self.device = torch.device(device)
+        self.f1 = BinaryF1Score().to(self.device)
+        self.auc = BinaryAUROC().to(self.device)
+        self.accuracy = BinaryAccuracy().to(self.device)
+        self.precision = BinaryPrecision().to(self.device)
+        self.recall = BinaryRecall().to(self.device)
+        self.cohen_kappa = BinaryCohenKappa().to(self.device)
 
     def update(self, preds, targets):
-        preds = preds.detach()
-        targets = targets.detach()
+        preds = preds.detach().to(self.device)
+        targets = targets.detach().to(self.device)
 
         self.f1.update(preds, targets)
         self.auc.update(preds, targets)

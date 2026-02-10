@@ -14,7 +14,7 @@ from training.losses import WeightedBCELoss
 from models.model_utils import count_parameters, save_model_checkpoint
 
 class ReactomeGNNTrainer:
-    def __init__(self, model, train_loader, val_loader, lr, weight_decay, step_size, gamma, patience, pos_weight=2.0):
+    def __init__(self, model, train_loader, val_loader, lr, weight_decay, step_size, gamma, patience):
         self.model = model
         self.train_loader = train_loader
         self.val_loader = val_loader
@@ -23,7 +23,10 @@ class ReactomeGNNTrainer:
         self.step_size = step_size
         self.gamma = gamma
         self.patience = patience
-        self.pos_weight = pos_weight
+
+        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        
+        self.model.to(self.device)
 
         self.optimiser = optim.Adam(
             model.parameters(),
@@ -38,10 +41,9 @@ class ReactomeGNNTrainer:
         )
 
         self.loss_fn = WeightedBCELoss()
-        self.metrics = MetricsTracker()
+        self.loss_fn.to(self.device)
 
-        self.device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.model.to(self.device)
+        self.metrics = MetricsTracker(device=self.device)
 
         self.min_delta = 1e-4
         self.best_val_loss = float('inf')
