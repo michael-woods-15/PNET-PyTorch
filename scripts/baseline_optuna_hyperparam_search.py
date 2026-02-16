@@ -8,14 +8,15 @@ import optuna
 from optuna.trial import TrialState
 import csv
 import matplotlib.pyplot as plt
+import numpy as np
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%H:%M')
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '..')))
 
 from data_access.data_pipeline import run_data_pipeline
 from reactome.pathway_hierarchy import get_connectivity_maps
-from models.pnet import PNet
-from training.pnet_trainer import PNetTrainer
+from models.baseline import DenseNN
+from training.baseline_trainer import DenseNNTrainer
 from scripts.scripts_utils import set_random_seed
 
 
@@ -28,14 +29,13 @@ class OptunaHyperparameterSearch:
         set_random_seed(self.random_seed)
         
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        self.run_dir = self.results_dir / f'optuna_search_{timestamp}'
+        self.run_dir = self.results_dir / f'baseline_optuna_search_{timestamp}'
         self.run_dir.mkdir(parents=True, exist_ok=True)
         
         logging.info("Loading data...")
         self.train_loader, self.val_loader, self.test_loader = run_data_pipeline()
-        self.connectivity_maps = get_connectivity_maps()[:5]
         
-        self.study_name = f'pnet_optimization_{timestamp}'
+        self.study_name = f'baseline_optimization_{timestamp}'
         storage_name = f"sqlite:///{self.run_dir / 'optuna_study.db'}"
 
         pruner = optuna.pruners.MedianPruner(
@@ -62,34 +62,33 @@ class OptunaHyperparameterSearch:
             'weight_decay': trial.suggest_float('weight_decay', 1e-4, 1e-2, log=True),
             'step_size': trial.suggest_int('step_size', 30, 70, step=10),
             'gamma': trial.suggest_float('gamma', 0.6, 0.95),
-            'dropout_h0': trial.suggest_float('dropout_h0', 0.3, 0.7),
-            'dropout_h': trial.suggest_float('dropout_h', 0.05, 0.2),
+            'hidden_layers': trial.suggest_categorical('hidden_layers', [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+            ]),
+            'dropout': trial.suggest_float('dropout_h', 0.05, 0.30),
             
             # Fixed parameters
             'max_epochs': 300,
             'patience': 20,
-            
-            # Categorical for loss_weights (uncomment if needed)
-            # 'loss_weights': trial.suggest_categorical('loss_weights', [
-            #     [4, 14, 25, 43, 74, 200],
-            #     [2, 7, 20, 54, 148, 400],
-            #     [1, 4, 10, 65, 222, 600]
-            # ])
         }
 
         logging.info(f"\nTrial {trial.number}: Testing configuration (seed: {trial_seed}):")
         logging.info(f"{json.dumps(config, indent=2)}")
 
         try:
-            model = PNet(
-                connectivity_maps=self.connectivity_maps,
-                n_genes=9229,
-                n_modalities=3,
-                dropout_h0=config['dropout_h0'],
-                dropout_h=config['dropout_h']
+            model = DenseNN(
+                n_genes=9229, 
+                n_modalities=3,  
+                dropout_h=config['dropout'],
+                hidden_layers=4
             )
-            
-            trainer = PNetTrainer(
+
+            trainer = DenseNNTrainer(
                 model,
                 self.train_loader,
                 self.val_loader,
@@ -97,7 +96,6 @@ class OptunaHyperparameterSearch:
                 weight_decay=config['weight_decay'],
                 step_size=config['step_size'],
                 gamma=config['gamma'],
-                loss_weights=config.get('loss_weights', [2, 7, 20, 54, 148, 400]),
                 patience=config['patience']
             )
 
