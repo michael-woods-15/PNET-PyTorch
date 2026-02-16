@@ -44,13 +44,24 @@ class ReactomeGNN(nn.Module):
         )
         
         self.pathway_embeddings = nn.Parameter(
-            torch.randn(self.n_pathway_nodes, projection_dim) * 0.01
+            torch.randn(self.n_pathway_nodes, projection_dim) * 0.1
         )
         
         self.edge_index = self.build_full_edge_index(connectivity_maps)
+
+        self.conv_layers = nn.ModuleList()
+        self.batch_norms = nn.ModuleList()
+
+        conv1 = GCNConv(projection_dim, hidden_dim)
+        self.conv_layers.append(conv1)
+        bn1 = nn.BatchNorm1d(hidden_dim)
+        self.batch_norms.append(bn1)
+
+        for _ in range(len(connectivity_maps)-1):
+            self.conv_layers.append(GCNConv(hidden_dim, hidden_dim))
+            self.batch_norms.append(nn.BatchNorm1d(hidden_dim))
         
-        self.conv1 = GCNConv(projection_dim, hidden_dim)
-        self.conv2 = GCNConv(hidden_dim, hidden_dim)
+
         self.dropout = nn.Dropout(dropout)
         self.classifier = nn.Linear(hidden_dim, 1)
         nn.init.xavier_uniform_(self.classifier.weight)
@@ -123,20 +134,19 @@ class ReactomeGNN(nn.Module):
         node_features = all_node_features.reshape(-1, self.projection_dim)
         
         batched_edge_index = self._get_batched_edge_index(batch_size, x.device)
-        
-        node_features = self.conv1(node_features, batched_edge_index)
-        node_features = F.relu(node_features)
-        node_features = self.dropout(node_features)
-        
-        node_features = self.conv2(node_features, batched_edge_index)
-        node_features = F.relu(node_features)
-        node_features = self.dropout(node_features)
+
+        for i, (conv, batch_norm) in enumerate(zip(self.conv_layers, self.batch_norms)):
+            node_features = conv(node_features, batched_edge_index)
+            node_features = batch_norm(node_features)
+            node_features = F.relu(node_features)
+            node_features = self.dropout(node_features)
         
         # Reshape back to [batch_size, total_nodes, hidden_dim]
         node_features = node_features.reshape(batch_size, self.total_nodes, -1)
         
         # Pool entire Reactome graph
-        graph_features = node_features.mean(dim=1)
+        top_level_features = node_features[:, 12276:, :]
+        graph_features = top_level_features.mean(dim=1)
         
         logits = self.classifier(graph_features)
         return logits

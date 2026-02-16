@@ -104,7 +104,7 @@ class PNetTrainer:
         metrics = self.metrics.compute()
         return avg_loss, metrics
 
-    def train(self, n_epochs=300, optuna_trial=None):
+    def train(self, n_epochs=300, optuna_trial=None, disable_early_stopping=False):
         logging.info(f"Starting training for {n_epochs} epochs...")
 
         for epoch in range(n_epochs):
@@ -150,7 +150,7 @@ class PNetTrainer:
                     logging.info(f"Trial pruned at epoch {epoch}")
                     raise optuna.TrialPruned()
             
-            if self.epochs_without_improvement >= self.patience:
+            if not disable_early_stopping and self.epochs_without_improvement >= self.patience:
                 self.stopped_early = True
                 logging.info(f"\nEarly stopping triggered after {epoch+1} epochs")
                 logging.info(f"Best validation loss: {self.best_val_loss:.4f}")

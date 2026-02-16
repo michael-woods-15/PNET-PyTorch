@@ -84,19 +84,19 @@ def main(selected_model):
     elif selected_model == "dense":
         model = DenseNN(
             n_genes=9229, 
-            n_modalities=3, 
-            layer_dimensions=[1387,1066,447,147,26], 
-            dropout=0.2
+            n_modalities=3,  
+            dropout=0.2,
+            hidden_layers=4
         )
 
         trainer = DenseNNTrainer(
             model=model,
             train_loader=train_loader,
             val_loader=val_loader,
-            lr=0.001,
-            weight_decay=0.01,
-            step_size=30,
-            gamma=0.5,         
+            lr=1e-4,
+            weight_decay=0.001,
+            step_size=20,
+            gamma=0.75,         
             patience=25,
         )
     else:
@@ -105,7 +105,7 @@ def main(selected_model):
             "Choose from ['pnet', 'reactome_gnn', 'pnet_single', 'dense']."
             )
 
-    trainer.train(n_epochs=300)
+    trainer.train(n_epochs=300, disable_early_stopping=True)
 
 
 if __name__ == '__main__':
