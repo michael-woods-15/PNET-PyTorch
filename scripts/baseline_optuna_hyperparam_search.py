@@ -29,7 +29,7 @@ class OptunaHyperparameterSearch:
         set_random_seed(self.random_seed)
         
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        self.run_dir = self.results_dir / f'baseline_optuna_search_{timestamp}'
+        self.run_dir = self.results_dir / f'baseline_optuna_search_final_{timestamp}'
         self.run_dir.mkdir(parents=True, exist_ok=True)
         
         logging.info("Loading data...")
@@ -63,18 +63,16 @@ class OptunaHyperparameterSearch:
             'step_size': trial.suggest_int('step_size', 30, 70, step=10),
             'gamma': trial.suggest_float('gamma', 0.6, 0.95),
             'hidden_layers': trial.suggest_categorical('hidden_layers', [
-                1,
-                2,
                 3,
                 4,
                 5,
                 6
             ]),
-            'dropout': trial.suggest_float('dropout_h', 0.05, 0.30),
+            'dropout': trial.suggest_float('dropout', 0.05, 0.30),
             
             # Fixed parameters
             'max_epochs': 300,
-            'patience': 20,
+            'patience': 40,
         }
 
         logging.info(f"\nTrial {trial.number}: Testing configuration (seed: {trial_seed}):")
@@ -84,7 +82,7 @@ class OptunaHyperparameterSearch:
             model = DenseNN(
                 n_genes=9229, 
                 n_modalities=3,  
-                dropout_h=config['dropout'],
+                dropout=config['dropout'],
                 hidden_layers=4
             )
 
