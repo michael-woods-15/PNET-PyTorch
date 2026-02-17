@@ -30,7 +30,7 @@ class ModalityFusionLayer(nn.Module):
         if gnn:
             self.projection_dim = projection_dim
             self.projection = nn.Linear(n_modalities, self.projection_dim)
-            self.projection_activation = nn.ReLU()
+            self.projection_activation = nn.Tanh()
 
         self._initialise_parameters()
 
@@ -71,16 +71,20 @@ class ModalityFusionLayer(nn.Module):
         Returns:
             projected_features: [batch_size, n_genes, projection_dim]
         """
+
         batch_size = x.size(0)
         weighted_inputs = x * self.weight
         modality_groups = weighted_inputs.reshape(batch_size * self.n_genes, self.n_modalities)
-
-        projected = self.projection(modality_groups) 
-        projected = self.projection_activation(projected)
-
-        projected_features = projected.reshape(batch_size, self.n_genes, self.projection_dim)
         
-        return projected_features
+        gene_aggregated = modality_groups.sum(dim=1)                          
+        gene_aggregated = gene_aggregated + self.bias.repeat(batch_size)      
+        gene_aggregated = self.activation(gene_aggregated)                   
+        gene_aggregated = gene_aggregated.unsqueeze(1) 
+        
+        projected = self.projection(gene_aggregated.expand_as(modality_groups)) 
+        projected = self.projection_activation(projected)
+        
+        return projected.reshape(batch_size, self.n_genes, self.projection_dim)
 
 
 class SparseBiologicalLayer(nn.Module):

@@ -44,7 +44,7 @@ class ReactomeGNN(nn.Module):
         )
         
         self.pathway_embeddings = nn.Parameter(
-            torch.randn(self.n_pathway_nodes, projection_dim) * 0.1
+            torch.zeros(self.n_pathway_nodes, projection_dim) 
         )
         
         self.edge_index = self.build_full_edge_index(connectivity_maps)
@@ -57,7 +57,7 @@ class ReactomeGNN(nn.Module):
         bn1 = nn.BatchNorm1d(hidden_dim)
         self.batch_norms.append(bn1)
 
-        for _ in range(len(connectivity_maps)-1):
+        for _ in range(len(connectivity_maps)):
             self.conv_layers.append(GCNConv(hidden_dim, hidden_dim))
             self.batch_norms.append(nn.BatchNorm1d(hidden_dim))
         
@@ -68,6 +68,8 @@ class ReactomeGNN(nn.Module):
         nn.init.zeros_(self.classifier.bias)
         
         self._batched_edge_cache = {}
+
+        logging.info(f"Num GCNConv Layers: {len(self.conv_layers)}")
 
 
     def build_full_edge_index(self, connectivity_maps):
@@ -117,6 +119,8 @@ class ReactomeGNN(nn.Module):
         Returns:
             logits: [batch_size, n_classes]
         """
+
+        #print("Input std:", x.std().item())
         batch_size = x.size(0)
         
         # Shape: [batch_size, n_genes, projection_dim]
@@ -138,15 +142,18 @@ class ReactomeGNN(nn.Module):
         for i, (conv, batch_norm) in enumerate(zip(self.conv_layers, self.batch_norms)):
             node_features = conv(node_features, batched_edge_index)
             node_features = batch_norm(node_features)
-            node_features = F.relu(node_features)
+            node_features = F.tanh(node_features)
             node_features = self.dropout(node_features)
+        
         
         # Reshape back to [batch_size, total_nodes, hidden_dim]
         node_features = node_features.reshape(batch_size, self.total_nodes, -1)
         
-        # Pool entire Reactome graph
-        top_level_features = node_features[:, 12276:, :]
-        graph_features = top_level_features.mean(dim=1)
+        # Pooling
+        start_idx = self.total_nodes - self.node_counts[-1]
+        graph_features = node_features[:, start_idx:, :].mean(dim=1)
         
         logits = self.classifier(graph_features)
+        #print("Gene feature std:", gene_features.std().item())
+        #print("Logit std:", logits.std().item())
         return logits

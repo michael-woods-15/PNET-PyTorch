@@ -83,7 +83,7 @@ class HyperparameterEvaluator:
             n_genes=9229,
             n_modalities=3,
             hidden_layers=params['hidden_layers'],
-            dropout=params['dropout']
+            dropout=params['dropout_h']
         )
         
         trainer = DenseNNTrainer(
@@ -132,7 +132,7 @@ class HyperparameterEvaluator:
                     params['step_size'],
                     params['gamma'],
                     params['hidden_layers'],
-                    params['dropout'],
+                    params['dropout_h'],
                     f"{result['mean_val_loss']:.6f}",
                     f"{result['std_val_loss']:.6f}"
                 ] + [f"{loss:.6f}" for loss in result['val_losses']]

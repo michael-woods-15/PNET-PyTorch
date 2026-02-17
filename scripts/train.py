@@ -45,20 +45,20 @@ def main(selected_model):
             connectivity_maps=connectivity_maps,
             n_genes=9229,
             n_modalities=3,
-            projection_dim=32,
-            hidden_dim=64,
+            projection_dim=16,
+            hidden_dim=32,
             dropout_h0=0.5,
-            dropout=0.3
+            dropout=0.1
         )
 
         trainer = ReactomeGNNTrainer(
             model=model,
             train_loader=train_loader,
             val_loader=val_loader,
-            lr=0.0005,
-            weight_decay=0.01,
-            step_size=30,
-            gamma=0.5,
+            lr=3e-4,
+            weight_decay=1e-4,
+            step_size=40,
+            gamma=0.75,
             patience=25,
         )
     elif selected_model == "pnet_single":

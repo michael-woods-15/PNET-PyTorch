@@ -28,11 +28,12 @@ class ReactomeGNNTrainer:
         
         self.model.to(self.device)
 
-        self.optimiser = optim.Adam(
-            model.parameters(),
-            lr = self.learning_rate,
-            weight_decay = self.weight_decay
-        )
+        self.optimiser = torch.optim.Adam([
+            {'params': model.pathway_embeddings, 'weight_decay': 1e-1},
+            {'params': [p for n, p in model.named_parameters() 
+                        if n != 'pathway_embeddings'], 'weight_decay': 1e-4},
+            ],
+            lr=self.learning_rate)
 
         self.scheduler = optim.lr_scheduler.StepLR(
             self.optimiser,
@@ -71,6 +72,18 @@ class ReactomeGNNTrainer:
 
             loss = self.loss_fn(logits, y)
             loss.backward()
+
+            """
+            total_norm = 0
+            for name, p in self.model.named_parameters():
+                if p.grad is not None:
+                    norm = p.grad.data.norm(2).item()
+                    total_norm += norm
+                    print(name, "grad:", norm)
+
+            print("Total grad norm:", total_norm)
+            """
+
             torch.nn.utils.clip_grad_norm_(self.model.parameters(), max_norm=1.0)
             self.optimiser.step()
             total_loss += loss.item()
