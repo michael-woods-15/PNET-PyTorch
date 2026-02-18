@@ -14,12 +14,13 @@ from training.losses import WeightedBCELoss
 from models.model_utils import count_parameters, save_model_checkpoint
 
 class ReactomeGNNTrainer:
-    def __init__(self, model, train_loader, val_loader, lr, weight_decay, step_size, gamma, patience):
+    def __init__(self, model, train_loader, val_loader, lr, weight_decay, pathway_weight_decay, step_size, gamma, patience):
         self.model = model
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.learning_rate = lr
         self.weight_decay = weight_decay
+        self.pathway_weight_decay = pathway_weight_decay
         self.step_size = step_size
         self.gamma = gamma
         self.patience = patience
@@ -29,9 +30,9 @@ class ReactomeGNNTrainer:
         self.model.to(self.device)
 
         self.optimiser = torch.optim.Adam([
-            {'params': model.pathway_embeddings, 'weight_decay': 1e-1},
+            {'params': model.pathway_embeddings, 'weight_decay': self.pathway_weight_decay},
             {'params': [p for n, p in model.named_parameters() 
-                        if n != 'pathway_embeddings'], 'weight_decay': 1e-4},
+                        if n != 'pathway_embeddings'], 'weight_decay': self.weight_decay},
             ],
             lr=self.learning_rate)
 

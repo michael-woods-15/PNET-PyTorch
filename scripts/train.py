@@ -57,6 +57,7 @@ def main(selected_model):
             val_loader=val_loader,
             lr=3e-4,
             weight_decay=1e-4,
+            pathway_weight_decay=1e-1,
             step_size=40,
             gamma=0.75,
             patience=25,
