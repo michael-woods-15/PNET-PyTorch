@@ -28,7 +28,7 @@ class OptunaHyperparameterSearch:
         set_random_seed(self.random_seed)
         
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        self.run_dir = self.results_dir / f'gnn_optuna_search_{timestamp}'
+        self.run_dir = self.results_dir / f'gnn_optuna_search_final{timestamp}'
         self.run_dir.mkdir(parents=True, exist_ok=True)
         
         logging.info("Loading data...")
@@ -57,23 +57,21 @@ class OptunaHyperparameterSearch:
         trial_seed = self.random_seed + trial.number
         set_random_seed(trial_seed)
 
-        projection_dim_ratio = trial.suggest_categorical('projection_dim_ratio', [0.5, 1.0])
-        hidden_dim = trial.suggest_categorical('hidden_dim', [32, 64])
         config = {
-            'learning_rate': trial.suggest_float('learning_rate', 1e-5, 1e-2, log=True),
-            'weight_decay': trial.suggest_float('weight_decay', 1e-6, 1e-2, log=True),
+            'learning_rate': trial.suggest_float('learning_rate', 1e-4, 1e-2, log=True),
+            'weight_decay': trial.suggest_float('weight_decay', 1e-5, 1e-3, log=True),
             'pathway_weight_decay': trial.suggest_float('pathway_weight_decay', 1e-3, 1e-1, log=True),
             'step_size': trial.suggest_int('step_size', 30, 70, step=10),
             'gamma': trial.suggest_float('gamma', 0.6, 0.95),
             'dropout_h0': trial.suggest_float('dropout_h0', 0.3, 0.7),
-            'dropout_h': trial.suggest_float('dropout_h', 0.05, 0.35),
-
-            'projection_dim': int(projection_dim_ratio*hidden_dim),
-            'hidden_dim': hidden_dim,
+            'dropout_h': trial.suggest_float('dropout_h', 0.0, 0.15),
 
             # Fixed parameters
             'max_epochs': 300,
-            'patience': 30
+            'patience': 30,
+            'projection_dim': 16,
+            'hidden_dim': 32,
+
         }
 
         logging.info(f"\nTrial {trial.number}: Testing configuration (seed: {trial_seed}):")
@@ -87,7 +85,7 @@ class OptunaHyperparameterSearch:
                 projection_dim = config['projection_dim'],
                 hidden_dim = config['hidden_dim'],
                 dropout_h0 = config['dropout_h0'],
-                dropout = config['dropout']
+                dropout = config['dropout_h']
             )
 
             trainer = ReactomeGNNTrainer(

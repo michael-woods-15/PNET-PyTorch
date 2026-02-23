@@ -42,7 +42,7 @@ def save_model_checkpoint(model, optimiser, scheduler, epoch, val_loss, val_metr
         'config' : config
     }
 
-    checkpoint_path = os.path.join(os.getcwd(), f'../checkpoints/{model_type}best_model.pt')
+    checkpoint_path = os.path.join(os.getcwd(), f'../checkpoints/{model_type}_best_model.pt')
     torch.save(checkpoint, checkpoint_path)
     logging.info(f"Checkpoint saved to {checkpoint_path}")
 
@@ -59,13 +59,13 @@ def load_model_checkpoint(model, checkpoint_path, optimiser=None, scheduler=None
         'epoch': checkpoint.get('epoch', 0),
         'val_loss': checkpoint.get('val_loss', None),
         'val_metrics': checkpoint.get('val_metrics', {}),
-        'optimizer_loaded': False,
+        'optimiser_loaded': False,
         'scheduler_loaded': False,
     }
     
     if optimiser is not None and 'optimiser_state_dict' in checkpoint:
         optimiser.load_state_dict(checkpoint['optimiser_state_dict'])
-        info['optimizsr_loaded'] = True
+        info['optimiser_loaded'] = True
     
     if scheduler is not None and 'scheduler_state_dict' in checkpoint:
         scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
@@ -80,7 +80,7 @@ def load_model_checkpoint(model, checkpoint_path, optimiser=None, scheduler=None
         metrics_str = ', '.join([f"{k}: {v:.4f}" for k, v in info['val_metrics'].items()])
         logging.info(f"    Validation metrics: {metrics_str}")
     if info['optimizer_loaded']:
-        logging.info("    Optimizer state restored")
+        logging.info("    Optimiser state restored")
     if info['scheduler_loaded']:
         logging.info("    Scheduler state restored")
     

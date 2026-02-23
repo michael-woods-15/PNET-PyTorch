@@ -85,10 +85,10 @@ class HyperparameterEvaluator:
             connectivity_maps=self.connectivity_maps,
             n_genes=9229,
             n_modalities=3,
-            projection_dim = params['projection_dim'],
-            hidden_dim = params['hidden_dim'],
+            projection_dim = 16,
+            hidden_dim = 32,
             dropout_h0 = params['dropout_h0'],
-            dropout = params['dropout']
+            dropout = params['dropout_h']
         )
 
         trainer = ReactomeGNNTrainer(
@@ -114,12 +114,12 @@ class HyperparameterEvaluator:
     def save_results(self):        
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         
-        json_filename = f"{self.output_path}/eval_results_{timestamp}.json"
+        json_filename = f"{self.output_path}/gnn_eval_results_{timestamp}.json"
         with open(json_filename, 'w') as f:
             json.dump(self.eval_results, f, indent=2)
         logging.info(f"Results saved to JSON: {json_filename}")
         
-        csv_filename = f"{self.output_path}/eval_results_{timestamp}.csv"
+        csv_filename = f"{self.output_path}/gnn_eval_results_{timestamp}.csv"
         with open(csv_filename, 'w', newline='') as f:
             writer = csv.writer(f)
             
@@ -195,7 +195,7 @@ class HyperparameterEvaluator:
 if __name__ == '__main__':
     hyperparam_evaluator = HyperparameterEvaluator(
         trials_per_config=5,
-        configs_path="../experiments/hyperparameters/optuna_search_final/top_10_configs.json",
+        configs_path="../experiments/hyperparameters/gnn_optuna_search_final20260218_131523/top_10_configs.json",
         output_path="../checkpoints/",
         random_seed=242
     )
