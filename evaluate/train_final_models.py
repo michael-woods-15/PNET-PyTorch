@@ -11,13 +11,15 @@ from models.baseline import DenseNN
 from training.pnet_trainer import PNetTrainer
 from training.reactome_gnn_trainer import ReactomeGNNTrainer
 from training.baseline_trainer import DenseNNTrainer
+from scripts.scripts_utils import set_random_seed
 
 class FinalModelsTrainer:
-    def __init__(self, model_configs, train_loader, val_loader, connectivity_maps):
+    def __init__(self, model_configs, train_loader, val_loader, connectivity_maps, random_seed):
         self.model_configs = model_configs
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.connectivity_maps = connectivity_maps
+        self.random_seed = random_seed
 
 
     def train_pnet(self, config):
@@ -81,7 +83,7 @@ class FinalModelsTrainer:
             model=model,
             train_loader=self.train_loader,
             val_loader=self.val_loader,
-            lr = config["learning_rate"],
+            lr = config["lr"],
             weight_decay = config["weight_decay"],
             pathway_weight_decay = config["pathway_weight_decay"],
             step_size = config["step_size"],
@@ -94,5 +96,9 @@ class FinalModelsTrainer:
 
     def train_all_models(self):
         self.train_pnet(self.model_configs["PNet"])
+        
+        set_random_seed(self.random_seed)
         self.train_baseline(self.model_configs["Baseline"])
+
+        set_random_seed(self.random_seed)
         self.train_reactome_gnn(self.model_configs["ReactomeGNN"])

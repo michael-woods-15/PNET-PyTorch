@@ -11,14 +11,23 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '..')))
 
 class MetricsTracker:
-    def __init__(self, device='cpu'):
+    def __init__(self, device='cpu', threshold=0.5):
         self.device = torch.device(device)
-        self.f1 = BinaryF1Score().to(self.device)
-        self.auc = BinaryAUROC().to(self.device)
-        self.accuracy = BinaryAccuracy().to(self.device)
-        self.precision = BinaryPrecision().to(self.device)
-        self.recall = BinaryRecall().to(self.device)
-        self.cohen_kappa = BinaryCohenKappa().to(self.device)
+        self.threshold = threshold
+        self._init_metrics()
+
+    def _init_metrics(self):
+        self.f1 = BinaryF1Score(threshold=self.threshold).to(self.device)
+        self.auc = BinaryAUROC().to(self.device) 
+        self.accuracy = BinaryAccuracy(threshold=self.threshold).to(self.device)
+        self.precision = BinaryPrecision(threshold=self.threshold).to(self.device)
+        self.recall = BinaryRecall(threshold=self.threshold).to(self.device)
+        self.cohen_kappa = BinaryCohenKappa(threshold=self.threshold).to(self.device)
+
+    def set_threshold(self, threshold):
+        self.threshold = threshold
+        self.reset()
+        self._init_metrics()
 
     def update(self, preds, targets):
         preds = preds.detach().to(self.device)
@@ -48,3 +57,4 @@ class MetricsTracker:
         self.precision.reset()
         self.recall.reset()
         self.cohen_kappa.reset()
+
