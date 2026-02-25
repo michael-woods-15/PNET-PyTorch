@@ -212,3 +212,6 @@ __marimo__/
 _database/
 experiments/
 checkpoints/
+
+#json files
+evaluate/evaluation_results.json
