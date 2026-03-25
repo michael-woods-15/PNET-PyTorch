@@ -1,4 +1,5 @@
 import logging
+
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%H:%M')
 
 def save_genes_list(genes_list, output_path):

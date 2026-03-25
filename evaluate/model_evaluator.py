@@ -31,7 +31,6 @@ class ModelEvaluator:
         if "model_state_dict" in checkpoint:
             model.load_state_dict(checkpoint["model_state_dict"])
         else:
-            # fallback if only state_dict was saved
             model.load_state_dict(checkpoint)
 
         return model
@@ -169,7 +168,7 @@ class ModelEvaluator:
         all_results["ReactomeGNN"] = gnn_results
     
         # Baseline Dense Neural Network evaluation
-        baseline_model = model = DenseNN(
+        baseline_model  = DenseNN(
             n_genes=9229, 
             n_modalities=3,  
             dropout = self.model_configs["Baseline"]['dropout'],

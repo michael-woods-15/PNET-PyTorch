@@ -29,6 +29,7 @@ class DenseNN(nn.Module):
             logging.info(f"Layer : {layer.in_features} -> {layer.out_features}")
         logging.info(f"Classifer Layer: {self.classifier.in_features} -> {self.classifier.out_features}")
 
+
     def get_hidden_dims(self, num_input_features, hidden_layers, output_dim):
         dimensions = [num_input_features]
         ratio = (output_dim / num_input_features) ** (1 / (hidden_layers + 1))
@@ -40,7 +41,6 @@ class DenseNN(nn.Module):
 
         return dimensions
         
-
 
     def forward(self, x):
         for layer in self.layers:

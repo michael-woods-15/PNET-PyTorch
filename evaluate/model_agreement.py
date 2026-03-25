@@ -152,37 +152,31 @@ def analyse_complementary_behaviour(results, y_true):
         for m in models
     }
 
-    # P-NET unique correct: P-NET right, both others wrong
     pnet_unique_correct = (
         correct["PNet"] &
         ~correct["ReactomeGNN"] &
         ~correct["Baseline"]
     )
 
-    # Baseline unique correct: Baseline right, both others wrong
     baseline_unique_correct = (
         correct["Baseline"] &
         ~correct["PNet"] &
         ~correct["ReactomeGNN"]
     )
 
-    # Baseline unique errors: Baseline wrong, both others right
     baseline_unique_errors = (
         ~correct["Baseline"] &
         correct["PNet"] &
         correct["ReactomeGNN"]
     )
 
-    # PNet unique errors: PNet wrong, both others right
     pnet_unique_errors = (
         ~correct["PNet"] &
         correct["Baseline"] &
         correct["ReactomeGNN"]
     )
 
-    # Key overlap: P-NET uniquely correct where Baseline uniquely wrong
     pnet_correct_baseline_wrong = pnet_unique_correct & baseline_unique_errors
-    # Key overlap: Baseline uniquely correct where P-NET uniquely wrong
     baseline_correct_pnet_wrong = baseline_unique_correct & pnet_unique_errors
 
     print("=" * 55)
@@ -214,7 +208,6 @@ def analyse_complementary_behaviour(results, y_true):
     print(f"  These are cases an ensemble of P-NET and Baseline "
           f"could potentially resolve correctly.")
 
-    # --- Total error breakdown by class ---
     print()
     print("=" * 55)
     print("Total Error Breakdown by Class")

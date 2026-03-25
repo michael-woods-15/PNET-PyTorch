@@ -12,12 +12,12 @@ class PNet(nn.Module):
     """
     Full P-NET with multiple output heads from each layer (h0-h5).
     Matches the original Keras implementation with 6 outputs:
-    - o1: output from h0 (modality fusion layer)
-    - o2: output from h1 (pathway layer 1)
-    - o3: output from h2 (pathway layer 2)
-    - o4: output from h3 (pathway layer 3)
-    - o5: output from h4 (pathway layer 4)
-    - o6: output from h5 (pathway layer 5)
+    - o0: output from h0 (modality fusion layer)
+    - o1: output from h1 (pathway layer 1)
+    - o2: output from h2 (pathway layer 2)
+    - o3: output from h3 (pathway layer 3)
+    - o4: output from h4 (pathway layer 4)
+    - o5: output from h5 (pathway layer 5)
     """
     def __init__(self, connectivity_maps, n_genes=9229, n_modalities=3, dropout_h0=0.5, dropout_h=0.1):
         super(PNet, self).__init__()
@@ -45,7 +45,7 @@ class PNet(nn.Module):
         Forward pass through all layers, collecting outputs from each.
         
         Returns:
-            list of tensors: [o1, o2, o3, o4, o5, o6] - predictions from each layer
+            list of tensors: [o0, o1, o2, o3, o4, o5] - predictions from each layer
         """
         outputs = []
 

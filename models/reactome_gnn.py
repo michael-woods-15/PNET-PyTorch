@@ -120,7 +120,6 @@ class ReactomeGNN(nn.Module):
             logits: [batch_size, n_classes]
         """
 
-        #print("Input std:", x.std().item())
         batch_size = x.size(0)
         
         # Shape: [batch_size, n_genes, projection_dim]
@@ -149,11 +148,9 @@ class ReactomeGNN(nn.Module):
         # Reshape back to [batch_size, total_nodes, hidden_dim]
         node_features = node_features.reshape(batch_size, self.total_nodes, -1)
         
-        # Pooling
+        # Top-level Reactome Hierarchy Node Mean Pooling
         start_idx = self.total_nodes - self.node_counts[-1]
         graph_features = node_features[:, start_idx:, :].mean(dim=1)
         
         logits = self.classifier(graph_features)
-        #print("Gene feature std:", gene_features.std().item())
-        #print("Logit std:", logits.std().item())
         return logits
