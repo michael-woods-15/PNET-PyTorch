@@ -119,20 +119,6 @@ class SparseBiologicalLayer(nn.Module):
         Designed for symmetric activations like tanh and sigmoid.
         Reference: LeCun et al., "Efficient BackProp" (1998)
         """
-
-        """
-        num_edges = len(self.src_idx)
-        avg_fan_in = num_edges / self.out_features
-        
-        limit = (3.0 / avg_fan_in) ** 0.5
-        nn.init.uniform_(self.weight, -limit, limit)
-        nn.init.zeros_(self.bias)
-        """
-
-        """
-        Non-biologically aware but matches original Keras implementation
-        """
-
         num_edges = len(self.src_idx)
     
         # LeCun uniform with fan_in = num_edges
