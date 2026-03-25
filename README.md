@@ -75,6 +75,12 @@ cd evaluate
 python evaluate_all.py
 ```
 
+### Side Note
+The models in this project were trained on an NVIDIA RTX Pro 6000 Blackwell GPU with 96GB of VRAM.
+Whilst P-NET and its individual layer variants are lightweight, sparse models that can be trained on a cpu,
+it is strongly advised to run this code using GPU capabilities as both the biologically agnostic dense baseline
+model and Reactome GNN are large, computationally expensive models
+
 ## Project Structure
 ```
 ├── _database/          # Data folder (see Data Availability)
