@@ -15,15 +15,15 @@ sys.path.append(os.path.abspath(os.path.join(os.getcwd(), '..')))
 from data_access.data_pipeline import run_data_pipeline
 
 MODEL_COLOURS = {
-    "PNet":                         "#2563EB",   # blue
-    "PNetSingle_output_layer_0":    "#93C5FD",   # lightest blue
-    "PNetSingle_output_layer_1":    "#60A5FA",
-    "PNetSingle_output_layer_2":    "#3B82F6",
-    "PNetSingle_output_layer_3":    "#1D4ED8",
-    "PNetSingle_output_layer_4":    "#1E3A8A",
-    "PNetSingle_output_layer_5":    "#172554",   # darkest blue
-    "ReactomeGNN":                  "#16A34A",   # green
-    "Baseline":                     "#DC2626",   # red
+    "PNet":                         "#DC2626",
+    "PNetSingle_output_layer_0":    "#2563EB",   
+    "PNetSingle_output_layer_1":    "#9CA3AF",   
+    "PNetSingle_output_layer_2":    "#9CA3AF",   
+    "PNetSingle_output_layer_3":    "#9CA3AF",   
+    "PNetSingle_output_layer_4":    "#9CA3AF", 
+    "PNetSingle_output_layer_5":    "#78716C",  
+    "ReactomeGNN":                  "#16A34A",  
+    "Baseline":                     "#7C3AED",   
 }
 
 SINGLE_LAYER_LABELS = {
@@ -141,7 +141,7 @@ def plot_pnet_layer_barcharts(results):
     with plt.rc_context(DISSERTATION_STYLE):
         fig, ax = plt.subplots(figsize=(7, 4))
         _bar_chart(ax, keys, f1s, "PNet Output Layer Comparison — F1", "F1 Score", cols, labels)
-        _savefig(fig, "pnet_layer_f1.png")
+        _savefig(fig, "pnet_layer_f1.pdf")
 
 
 
@@ -163,15 +163,15 @@ def plot_pnet_roc_overlay_with_labels(results, y_true: np.ndarray):
         ax.set_ylabel("True Positive Rate", fontsize=9)
         ax.set_title("ROC Curves — PNet Output Layers", fontsize=10, fontweight="bold", pad=8)
         ax.legend(fontsize=7.5, loc="lower right")
-        _savefig(fig, "pnet_roc_overlay.png")
+        _savefig(fig, "pnet_roc_overlay.pdf")
 
 
 
 # ── PNet vs Baseline vs GNN side-by-side metric bar chart ─────────
 
 def plot_baseline_comparison_barchart(results, models, plot_name):
-    metrics = ["auc", "f1", "precision", "recall", "accuracy", "cohen_kappa"]
-    labels  = ["AUC", "F1", "Precision", "Recall", "Accuracy", "Cohen's κ"]
+    metrics = ["auc", "f1", "precision", "recall", "accuracy"]
+    labels  = ["AUC", "F1", "Precision", "Recall", "Accuracy"]
 
     n_metrics = len(metrics)
     n_models  = len(models)
@@ -233,6 +233,73 @@ def plot_baseline_roc_overlay(results, y_true, models, plot_name):
                     fontsize=10, fontweight="bold", pad=8)
         ax.legend(fontsize=8, loc="lower right")
         _savefig(fig, plot_name)
+
+
+
+# ── Individual confusion matrices ─────────────────────────────────
+
+def plot_individual_confusion_matrices(results, y_true: np.ndarray):
+    """
+    One 2x2 confusion matrix per model (PNet, ReactomeGNN, Baseline),
+    arranged side by side. Cells are annotated with raw counts and
+    row-normalised percentages.
+    """
+    models       = ["PNet", "ReactomeGNN", "Baseline"]
+
+    with plt.rc_context(DISSERTATION_STYLE):
+        fig, axes = plt.subplots(1, 3, figsize=(13, 4))
+        fig.suptitle("Confusion Matrices — PNet, ReactomeGNN, Baseline",
+                     fontsize=11, fontweight="bold", y=1.02)
+
+        for ax, model in zip(axes, models):
+            preds  = np.asarray(results[model]["preds"]).flatten()
+            labels = np.asarray(y_true).flatten()
+
+            # rows = actual, cols = predicted
+            # [[TN, FP],
+            #  [FN, TP]]
+            tn = int(np.sum((preds == 0) & (labels == 0)))
+            fp = int(np.sum((preds == 1) & (labels == 0)))
+            fn = int(np.sum((preds == 0) & (labels == 1)))
+            tp = int(np.sum((preds == 1) & (labels == 1)))
+
+            matrix = np.array([[tn, fp],
+                                [fn, tp]])
+
+            # Row-normalised (recall perspective: of all actual X, how many predicted correctly)
+            row_sums = matrix.sum(axis=1, keepdims=True)
+            norm     = matrix / row_sums.clip(min=1)
+
+            im = ax.imshow(norm, cmap="Blues", vmin=0, vmax=1, aspect="auto")
+
+            cell_labels = [["TN", "FP"], ["FN", "TP"]]
+            for i in range(2):
+                for j in range(2):
+                    count   = matrix[i, j]
+                    pct     = norm[i, j] * 100
+                    txt_col = "white" if norm[i, j] > 0.55 else "black"
+                    ax.text(j, i - 0.12,
+                            f"{cell_labels[i][j]}  {count}",
+                            ha="center", va="center",
+                            fontsize=12, fontweight="bold", color=txt_col)
+                    ax.text(j, i + 0.18,
+                            f"({pct:.1f}%)",
+                            ha="center", va="center",
+                            fontsize=9, color=txt_col)
+
+            ax.set_xticks([0, 1])
+            ax.set_yticks([0, 1])
+            ax.set_xticklabels(["Predicted\nNegative", "Predicted\nPositive"], fontsize=8)
+            ax.set_yticklabels(["Actual\nNegative", "Actual\nPositive"], fontsize=8)
+            ax.set_title(model, fontsize=10, fontweight="bold",
+                         color=MODEL_COLOURS[model], pad=10)
+
+            plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04).set_label(
+                "Row-normalised rate", fontsize=7, color="grey"
+            )
+
+        plt.tight_layout()
+        _savefig(fig, "individual_confusion_matrices.pdf")
 
 
 
@@ -300,34 +367,37 @@ def plot_error_consistency_matrices(results, y_true: np.ndarray):
             )
 
         plt.tight_layout()
-        _savefig(fig, "error_consistency_matrices.png")
+        _savefig(fig, "error_consistency_matrices.pdf")
 
 
 
-# ── UpSet plot of correctly classified samples ────────────────────
+def _apply_model_styles(upset):
+    models = ["PNet", "ReactomeGNN", "Baseline"]
+    for m in models:
+        upset.style_subsets(
+            present=m,
+            absent=[x for x in models if x != m],
+            facecolor=MODEL_COLOURS[m],
+            label=f"{m} only",
+        )
+
 
 def plot_upset_correct(results, y_true: np.ndarray):
     """
     UpSet plot showing the overlap of correctly classified test samples across
     PNet, ReactomeGNN, and Baseline.
     """
-
     models = ["PNet", "ReactomeGNN", "Baseline"]
 
-    # Boolean array: correct[m][i] = True if model m got sample i right
     correct = {
         m: (results[m]["preds"].numpy().squeeze() == y_true)
         for m in models
     }
 
-    n_samples = len(y_true)
-
-    # Build membership list — each sample belongs to the subset of models
-    # that classified it correctly
-    memberships = []
-    for i in range(n_samples):
-        membership = [m for m in models if correct[m][i]]
-        memberships.append(membership)
+    memberships = [
+        [m for m in models if correct[m][i]]
+        for i in range(len(y_true))
+    ]
 
     data = from_memberships(memberships)
 
@@ -338,47 +408,26 @@ def plot_upset_correct(results, y_true: np.ndarray):
             data,
             subset_size="count",
             show_counts=True,
-            sort_by="cardinality",         # largest intersections first
+            sort_by="cardinality",
             totals_plot_elements=3,
         )
 
-        # Colour the bars using model colours where possible
-        upset.style_subsets(
-            present="PNet",
-            absent=["ReactomeGNN", "Baseline"],
-            facecolor=MODEL_COLOURS["PNet"],
-            label="PNet only",
-        )
-        upset.style_subsets(
-            present="ReactomeGNN",
-            absent=["PNet", "Baseline"],
-            facecolor=MODEL_COLOURS["ReactomeGNN"],
-            label="GNN only",
-        )
-        upset.style_subsets(
-            present="Baseline",
-            absent=["PNet", "ReactomeGNN"],
-            facecolor=MODEL_COLOURS["Baseline"],
-            label="Baseline only",
-        )
-
+        _apply_model_styles(upset)
         upset.plot(fig)
         fig.suptitle(
             "Correctly Classified Samples — Model Agreement (UpSet Plot)",
             fontsize=10, fontweight="bold", y=1.02
         )
 
-        _savefig(fig, "upset_correct_samples.png")
+        _savefig(fig, "upset_correct_samples.pdf")
 
-
-# ── UpSet plot of incorrectly classified samples ──────────────────
 
 def plot_upset_incorrect(results, y_true: np.ndarray):
     """
-    Same as plot_upset_correct but for *incorrectly* classified samples.
-    The 'all models wrong' bar reveals the hard samples no model can handle.
+    UpSet plot showing the overlap of incorrectly classified test samples across
+    PNet, ReactomeGNN, and Baseline. The 'all models wrong' bar reveals the
+    hard samples no model can handle.
     """
-
     models = ["PNet", "ReactomeGNN", "Baseline"]
 
     incorrect = {
@@ -386,15 +435,12 @@ def plot_upset_incorrect(results, y_true: np.ndarray):
         for m in models
     }
 
-    n_samples = len(y_true)
+    memberships = [
+        [m for m in models if incorrect[m][i]]
+        for i in range(len(y_true))
+    ]
 
-    memberships = []
-    for i in range(n_samples):
-        membership = [m for m in models if incorrect[m][i]]
-        memberships.append(membership)
-
-    # Filter out samples no model got wrong (empty membership = correctly
-    # classified by all — not relevant to this plot)
+    # Filter out samples all models got right (empty membership not relevant)
     memberships = [m for m in memberships if len(m) > 0]
 
     data = from_memberships(memberships)
@@ -410,13 +456,14 @@ def plot_upset_incorrect(results, y_true: np.ndarray):
             totals_plot_elements=3,
         )
 
+        _apply_model_styles(upset)
         upset.plot(fig)
         fig.suptitle(
             "Incorrectly Classified Samples — Shared Errors (UpSet Plot)",
             fontsize=10, fontweight="bold", y=1.02
         )
 
-        _savefig(fig, "upset_incorrect_samples.png")
+        _savefig(fig, "upset_incorrect_samples.pdf")
 
 
 
@@ -428,17 +475,18 @@ def generate_all_plots(y_true, results_filename="evaluation_results.json"):
     plot_pnet_roc_overlay_with_labels(results, y_true)
 
     models = ["PNet", "Baseline"]
-    barchart_name = "pnet_baseline_comparison_barchart.png"
-    roc_curve_name = "pnet_baseline_comparison_roc.png"
+    barchart_name = "pnet_baseline_comparison_barchart.pdf"
+    roc_curve_name = "pnet_baseline_comparison_roc.pdf"
     plot_baseline_comparison_barchart(results, models, barchart_name)
     plot_baseline_roc_overlay(results, y_true, models, roc_curve_name)
 
     models = ["PNet", "ReactomeGNN"]
-    barchart_name = "pnet_gnn_comparison_barchart.png"
-    roc_curve_name = "pnet_gnn_comparison_roc.png"
+    barchart_name = "pnet_gnn_comparison_barchart.pdf"
+    roc_curve_name = "pnet_gnn_comparison_roc.pdf"
     plot_baseline_comparison_barchart(results, models, barchart_name)
     plot_baseline_roc_overlay(results, y_true, models, roc_curve_name)
 
+    plot_individual_confusion_matrices(results, y_true)
     plot_error_consistency_matrices(results, y_true)
     plot_upset_correct(results, y_true)
     plot_upset_incorrect(results, y_true)
@@ -450,4 +498,3 @@ if __name__ == "__main__":
     _, _, test_loader = run_data_pipeline()
     y_true = torch.cat([y for _, y in test_loader]).numpy()
     generate_all_plots(y_true)
-    pass

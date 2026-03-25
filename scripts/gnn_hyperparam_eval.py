@@ -138,8 +138,8 @@ class HyperparameterEvaluator:
                     params['pathway_weight_decay'],
                     params['step_size'],
                     params['gamma'],
-                    params['projection_dim'],
-                    params['hidden_dim'],
+                    16,
+                    32,
                     params['dropout_h0'],
                     params['dropout_h'],
                     f"{result['mean_val_loss']:.6f}",
@@ -195,7 +195,7 @@ class HyperparameterEvaluator:
 if __name__ == '__main__':
     hyperparam_evaluator = HyperparameterEvaluator(
         trials_per_config=5,
-        configs_path="../experiments/hyperparameters/gnn_optuna_search_final20260218_131523/top_10_configs.json",
+        configs_path="../experiments/hyperparameters/gnn_optuna_search_final20260307_161056/top_10_configs.json",
         output_path="../checkpoints/",
         random_seed=242
     )

@@ -78,7 +78,9 @@ class ModalityFusionLayer(nn.Module):
         
         gene_aggregated = modality_groups.sum(dim=1)                          
         gene_aggregated = gene_aggregated + self.bias.repeat(batch_size)      
-        gene_aggregated = self.activation(gene_aggregated)                   
+        gene_aggregated = self.activation(gene_aggregated)   
+        if self.dropout is not None:
+            gene_aggregated = self.dropout(gene_aggregated)                
         gene_aggregated = gene_aggregated.unsqueeze(1) 
         
         projected = self.projection(gene_aggregated.expand_as(modality_groups)) 

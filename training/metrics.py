@@ -4,7 +4,7 @@ import os
 import torch
 from torchmetrics.classification import (
     BinaryF1Score, BinaryAUROC, BinaryAccuracy,
-    BinaryPrecision, BinaryRecall, BinaryCohenKappa
+    BinaryPrecision, BinaryRecall
 )
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s', datefmt='%H:%M')
@@ -22,7 +22,6 @@ class MetricsTracker:
         self.accuracy = BinaryAccuracy(threshold=self.threshold).to(self.device)
         self.precision = BinaryPrecision(threshold=self.threshold).to(self.device)
         self.recall = BinaryRecall(threshold=self.threshold).to(self.device)
-        self.cohen_kappa = BinaryCohenKappa(threshold=self.threshold).to(self.device)
 
     def set_threshold(self, threshold):
         self.threshold = threshold
@@ -38,7 +37,6 @@ class MetricsTracker:
         self.accuracy.update(preds, targets)
         self.precision.update(preds, targets)
         self.recall.update(preds, targets)
-        self.cohen_kappa.update(preds, targets)
 
     def compute(self):
         return {
@@ -47,7 +45,6 @@ class MetricsTracker:
             'accuracy': self.accuracy.compute().item(),
             'precision': self.precision.compute().item(),
             'recall': self.recall.compute().item(),
-            'cohen_kappa': self.cohen_kappa.compute().item()
         }
 
     def reset(self):
@@ -56,5 +53,4 @@ class MetricsTracker:
         self.accuracy.reset()
         self.precision.reset()
         self.recall.reset()
-        self.cohen_kappa.reset()
 

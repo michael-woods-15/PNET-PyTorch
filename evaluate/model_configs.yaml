@@ -21,13 +21,13 @@ models:
     patience: 40
 
   - name: ReactomeGNN
-    lr: 0.0003896461488619158
-    weight_decay: 6.491117801513265e-05
-    pathway_weight_decay: 0.0016234096630288093
-    step_size: 30
-    gamma: 0.8705105341047068
-    dropout_h0: 0.38898813967411094
-    dropout_h: 0.002155127089024697
+    lr: 0.00025944038792673213
+    weight_decay: 0.00010134624537619877
+    pathway_weight_decay: 0.06620094991304759
+    step_size: 50
+    gamma: 0.8678046351323309
+    dropout_h0: 0.4423952031676612
+    dropout_h: 0.003973520557921029
     projection_dim: 16
     hidden_dim: 32
     max_epochs: 300

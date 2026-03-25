@@ -37,7 +37,7 @@ class ModelEvaluator:
         return model
     
 
-    def evaluate_pnet(self, model, output_layer_index=None):
+    def evaluate_pnet(self, model, output_layer_index=None, pred_threshold=0.35):
         """
         Evaluates PNet or SingleOutputPNet on the test set.
         output_layer_index: if None, averages all outputs (standard PNet)
@@ -69,7 +69,7 @@ class ModelEvaluator:
         return {
             'metrics': computed_metrics,
             'probs': all_probs,
-            'preds': (all_probs >= 0.5).long()
+            'preds': (all_probs >= pred_threshold).long()
         }
 
 
@@ -119,7 +119,8 @@ class ModelEvaluator:
             set_random_seed(self.random_seed)
             results = self.evaluate_pnet(
                 pnet_model,
-                output_layer_idx
+                output_layer_idx,
+                PNET_PREDICTION_THRESHOLD
             )
 
             if output_layer_idx is None:

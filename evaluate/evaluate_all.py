@@ -13,6 +13,8 @@ from scripts.scripts_utils import set_random_seed
 from evaluate.train_final_models import FinalModelsTrainer
 from evaluate.model_evaluator import ModelEvaluator
 from evaluate.generate_plots import generate_all_plots
+from evaluate.statistical_tests import run_statistical_tests
+from evaluate.model_agreement import check_model_agreement
 
 
 def load_model_configs():
@@ -55,6 +57,9 @@ def evaluate_models():
     logging.info("\nGenerating plots of results")
     y_true = torch.cat([y for _, y in test_loader]).numpy()
     generate_all_plots(y_true)
+
+    run_statistical_tests(y_true)
+    check_model_agreement(y_true)
 
 
 if __name__ == '__main__':

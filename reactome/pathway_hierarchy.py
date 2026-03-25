@@ -57,6 +57,7 @@ def complete_network_digraph(G, n_levels=5):
         if levels_to_add > 0:
             sub_graph = add_edges(sub_graph, node, levels_to_add)
 
+    logging.info(f"Added {total_copy_nodes_added_top_layer} copy nodes to top layer")
     return sub_graph
 
 
@@ -178,7 +179,7 @@ def get_connectivity_maps():
     genes = load_genes_list(SELECTED_GENES_FILE_PATH)
     layer_maps = get_layer_maps(layers, genes)
 
-    return layer_maps
+    return layer_maps[:5]
 
 if __name__ == "__main__":
    get_connectivity_maps()

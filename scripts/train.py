@@ -87,7 +87,7 @@ def main(selected_model):
             n_genes=9229, 
             n_modalities=3,  
             dropout=0.2,
-            hidden_layers=4
+            hidden_layers=5
         )
 
         trainer = DenseNNTrainer(
