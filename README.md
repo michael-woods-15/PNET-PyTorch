@@ -122,3 +122,13 @@ hyperparameter searches, and selecting candidate configurations produced by Optu
 ### `train/`
 Contains model trainers for all three architectures as well as single-layer variants of P-NET used 
 throughout the project. Also includes a custom BCE loss implementation and a metrics tracker.
+
+## References
+- Elmarakeby, H. A., Hwang, J., Arafeh, R., Crowdis, J., Gang, S., Liu, D., AlDubayan, S. H.,
+Salari, K., Kregel, S., Richter, C. et al. (2021), ‘Biologically informed deep neural network for
+prostate cancer discovery’, Nature 598(7880), 348–352.
+- Akiba, T., Sano, S., Yanase, T., Ohta, T. and Koyama, M. (2019), Optuna: A next-generation
+hyperparameter optimization framework, in ‘Proceedings of the 25th ACM SIGKDD Interna-
+tional Conference on Knowledge Discovery and Data Mining’.
+- LeCun, Y., Bottou, L., Orr, G. B. and Müller, K.-R. (2002), Efficient backprop, in ‘Neural
+networks: Tricks of the trade’, Springer, pp. 9–50.
